@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.513.1251
+#AutoIt3Wrapper_Res_Fileversion=1.2408.513.1406
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -30120,7 +30120,7 @@ Next
 return $aRet
 EndFunc
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.513.1251"
+Global Const $VERSION = "1.2408.513.1406"
 Global $sTitle=$sAlias&" v"&$VERSION
 Global $gsDataDir=@LocalAppDataDir&"\InfinitySys\cwNotifier"
 Global $gsLogFile=$gsDataDir&"\cwNotifier.log"
