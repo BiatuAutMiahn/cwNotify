@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.513.1406
+#AutoIt3Wrapper_Res_Fileversion=1.2408.708.4758
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -73,7 +73,7 @@ Opt("TrayMenuMode",3)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.513.1406"
+Global Const $VERSION = "1.2408.708.4758"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -453,7 +453,7 @@ While Sleep(125)
   Local $aModFields
   $bCommit=False
   ;_DebugArrayDisplay($aTiks)
-  $fToast_DismissAll=False
+  $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
     $bNewTik=False
     $bNotify=False
@@ -501,7 +501,7 @@ While Sleep(125)
       _Log("================"&@CRLF)
     EndIf
     _Log($sTikTitle&@CRLF&$sNotify&@CRLF)
-    If $fToast_DismissAll=False Then
+    If $fToast_bDismissAll=False Then
       $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
       If $fToast_OpenTik Then
         ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aTiks[$i][0]&"&companyName="&$g_cwm_sCompany)
