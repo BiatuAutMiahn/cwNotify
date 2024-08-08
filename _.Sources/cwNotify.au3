@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.708.4758
+#AutoIt3Wrapper_Res_Fileversion=1.2408.808.3107
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -73,7 +73,7 @@ Opt("TrayMenuMode",3)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.708.4758"
+Global Const $VERSION = "1.2408.808.3107"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -217,8 +217,8 @@ Global $g_cwm_sClientId,$g_cwm_sPrivKey,$g_cwm_sPubKey,$g_cwm_sUser,$g_cwm_jLast
 Global $g_cwm_hHttp,$g_cwm_hConnect
 Global $bFieldMod
 
-Global $sNewFields="_info.dateEntered, _info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name, _info.enteredBy"
-Global $sModFields="_info.dateEntered, _info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name, _info.updatedBy"
+Global $sNewFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.enteredBy"
+Global $sModFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.updatedBy"
 Global $sNoModFields="_info.lastUpdated"
 
 Global $aFieldsDesc[][2]=[ _
