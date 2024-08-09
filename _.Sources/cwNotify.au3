@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.808.3107
+#AutoIt3Wrapper_Res_Fileversion=1.2408.908.5430
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -73,7 +73,7 @@ Opt("TrayMenuMode",3)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.808.3107"
+Global Const $VERSION = "1.2408.908.5430"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -388,6 +388,12 @@ Local $bDev=@Compiled ? False : True
 ;~ $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
 ;~ MsgBox(64,"",$fToast_bDismissAll)
 ;~ Exit
+
+
+;1961209
+;$jFetch=_cwmCall("/service/tickets?conditions=id=1961209&pageSize=1000")
+;ClipPut(_JSON_Generate($jFetch))
+;Exit
 ConsoleWrite("Watching Tickets..."&@CRLF)
 While Sleep(125)
   ; Test Connectivity
@@ -784,8 +790,8 @@ Func _saveState()
   DirCreate($gsDataDir)
   For $i=1 To $aTiksLast[0][0]
     IniWrite($gsStateFile,$aTiksLast[$i][0],"LastMod",$aTiksLast[$i][1])
-    IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik", _Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
-    IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote", _Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
+    IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik",_Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
+    IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote",_Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
     IniWrite($gsStateFile,$aTiksLast[$i][0],"Type",$aTiksLast[$i][4])
   Next
   _Log("Saving State...Done")
@@ -895,7 +901,7 @@ EndFunc   ;==>_cwmGetTicketList
 
 Func _cwmGetTikNfo($iType,$sId)
   Local $sType=$iType==0 ? "service" : "project"
-  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id, _info/lastUpdated&pageSize=1000')
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id,_info/lastUpdated&pageSize=1000')
   If @error Then Return SetError(1,(@extended*10+1),0)
   If IsArray($jTik) Then $jTik=$jTik[0]
   Return SetError(0,0,$jTik)
@@ -903,7 +909,7 @@ EndFunc   ;==>_cwmGetTikNfo
 
 Func _cwmGetTiks(ByRef $aTikNfo,$iType,$sUser)
   Local $sType=$iType==0 ? "service" : "project"
-  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"'&'&fields=id, _info/lastUpdated&pageSize=1000')
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"'&'&fields=id,_info/lastUpdated&pageSize=1000')
   If @error Then Return SetError(1,(@extended*10+1),0)
 EndFunc   ;==>_cwmGetTiks
 
@@ -980,7 +986,7 @@ Func _cwmGetTickets(ByRef $aTikNfo,$iType,$sUser)
     EndIf
     $aPastIds[0]=$iMax
   Next
-  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id, _info/lastUpdated&pageSize=1000')
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id,_info/lastUpdated&pageSize=1000')
   If @error Then
     _Log("_cwmGetTickets took "&TimerDiff($iTimer))
     Return SetError(1,(@extended*10+2),0)
@@ -1191,7 +1197,7 @@ Func _PurgeOldTiks()
   $iOld=$aTiksLast[0][0]
   Dim $aKeepTiks[1][$iyMax]
   $aKeepTiks[0][0]=0
-  $iLastWeek=_DateDiff('s',$g_cwm_sEpoch, _DateAdd('D',-7, _NowCalc()))
+  $iLastWeek=_DateDiff('s',$g_cwm_sEpoch,_DateAdd('D',-7,_NowCalc()))
   For $i=1 To $aTiksLast[0][0]
     $jTik=$aTiksLast[$i][2]
     ;_Log($aTiksLast[$i][0]&':'&_JSON_Get($jTik,"closedFlag")&@CRLF)

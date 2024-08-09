@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.708.4758
+#AutoIt3Wrapper_Res_Fileversion=1.2408.908.5430
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -30120,7 +30120,7 @@ Next
 return $aRet
 EndFunc
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.708.4758"
+Global Const $VERSION = "1.2408.908.5430"
 Global $sTitle=$sAlias&" v"&$VERSION
 Global $gsDataDir=@LocalAppDataDir&"\InfinitySys\cwNotifier"
 Global $gsLogFile=$gsDataDir&"\cwNotifier.log"
@@ -30155,8 +30155,8 @@ Global $g_cwm_sCI,$g_cwm_sCompany,$g_cwm_sCodeBase,$g_cwm_sSiteUrl,$g_cwm_sApiUr
 Global $g_cwm_sClientId,$g_cwm_sPrivKey,$g_cwm_sPubKey,$g_cwm_sUser,$g_cwm_jLastRet
 Global $g_cwm_hHttp,$g_cwm_hConnect
 Global $bFieldMod
-Global $sNewFields="_info.dateEntered, _info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name, _info.enteredBy"
-Global $sModFields="_info.dateEntered, _info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name, _info.updatedBy"
+Global $sNewFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.enteredBy"
+Global $sModFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.updatedBy"
 Global $sNoModFields="_info.lastUpdated"
 Global $aFieldsDesc[][2]=[ [0,0], ["id","id"], ["status.name","Status"], ["owner.name","Owner"], ["summary","Summary"], ["company.name","Company"], ["contact.name","Contact"], ["subType.name","subType"], ["item.name","Item"], ["priority.name","Priority"], ["severity.name","Severity"], ["impact.name","Impact"], ["type.name","Type"], ["_info.dateEntered","Created"], ["_info.enteredBy","Creator"], ["_info.updatedBy","Modified By"], ["_info.lastUpdated","Updated"] ]
 $aFieldsDesc[0][0]=UBound($aFieldsDesc,1)-1
@@ -30600,8 +30600,8 @@ _Log("Saving State...")
 DirCreate($gsDataDir)
 For $i=1 To $aTiksLast[0][0]
 IniWrite($gsStateFile,$aTiksLast[$i][0],"LastMod",$aTiksLast[$i][1])
-IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik", _Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
-IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote", _Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
+IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik",_Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
+IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote",_Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
 IniWrite($gsStateFile,$aTiksLast[$i][0],"Type",$aTiksLast[$i][4])
 Next
 _Log("Saving State...Done")
@@ -30696,14 +30696,14 @@ Return SetError(0,0,$jTik)
 EndFunc
 Func _cwmGetTikNfo($iType,$sId)
 Local $sType=$iType==0 ? "service" : "project"
-$jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id, _info/lastUpdated&pageSize=1000')
+$jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id,_info/lastUpdated&pageSize=1000')
 If @error Then Return SetError(1,(@extended*10+1),0)
 If IsArray($jTik) Then $jTik=$jTik[0]
 Return SetError(0,0,$jTik)
 EndFunc
 Func _cwmGetTiks(ByRef $aTikNfo,$iType,$sUser)
 Local $sType=$iType==0 ? "service" : "project"
-$jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"'&'&fields=id, _info/lastUpdated&pageSize=1000')
+$jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"'&'&fields=id,_info/lastUpdated&pageSize=1000')
 If @error Then Return SetError(1,(@extended*10+1),0)
 EndFunc
 Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
@@ -30773,7 +30773,7 @@ Return SetError(1,(@extended*10+1),0)
 EndIf
 $aPastIds[0]=$iMax
 Next
-$jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id, _info/lastUpdated&pageSize=1000')
+$jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id,_info/lastUpdated&pageSize=1000')
 If @error Then
 _Log("_cwmGetTickets took "&TimerDiff($iTimer))
 Return SetError(1,(@extended*10+2),0)
@@ -30965,7 +30965,7 @@ $iyMax=UBound($aTiksLast,2)
 $iOld=$aTiksLast[0][0]
 Dim $aKeepTiks[1][$iyMax]
 $aKeepTiks[0][0]=0
-$iLastWeek=_DateDiff('s',$g_cwm_sEpoch, _DateAdd('D',-7, _NowCalc()))
+$iLastWeek=_DateDiff('s',$g_cwm_sEpoch,_DateAdd('D',-7,_NowCalc()))
 For $i=1 To $aTiksLast[0][0]
 $jTik=$aTiksLast[$i][2]
 If StringInStr(_JSON_Get($jTik,"closedFlag"),"true") And $aTiksLast[$i][1]<$iLastWeek Then
