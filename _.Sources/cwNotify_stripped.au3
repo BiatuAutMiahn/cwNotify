@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.908.5430
+#AutoIt3Wrapper_Res_Fileversion=1.2408.913.5202
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -30120,7 +30120,7 @@ Next
 return $aRet
 EndFunc
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.908.5430"
+Global Const $VERSION = "1.2408.913.5202"
 Global $sTitle=$sAlias&" v"&$VERSION
 Global $gsDataDir=@LocalAppDataDir&"\InfinitySys\cwNotifier"
 Global $gsLogFile=$gsDataDir&"\cwNotifier.log"
@@ -30325,6 +30325,10 @@ Next
 Else
 If $aTiks[$i][1]<=$aTiksLast[$iIdxLast][1] Then ContinueLoop
 $sUpdater=_JSON_Get($tNew,'_info.updatedBy')
+If $sUpdater=$g_cwm_sUser Then
+_Log("Skipped Tik Mod By: "&$sUpdater)
+ContinueLoop
+EndIf
 $sTikTitle="[Ticket Updated]"
 _tikGetFields($aTiksLast[$i][2],$aOldFields,$sModFields)
 _tikGetFields($tNew,$aModFields,$sModFields)
