@@ -5,7 +5,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.913.5202
+#AutoIt3Wrapper_Res_Fileversion=1.2408.1415.4013
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -73,7 +73,7 @@ Opt("TrayMenuMode",3)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.913.5202"
+Global Const $VERSION = "1.2408.1415.4013"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -1538,7 +1538,7 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
     Local $sBtnB="Dismiss All"
     Local $aBtn_PosB=_StringSize($sBtnB,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iToast_Width/$iBtnMax)
     $hToast_DismissAll=GuiFlatButton_Create($sBtnB,$iBtnLeft+($iBtnWidth*2),$iToast_Height-$iTitle_Height+1,$iBtnWidth-2,$iTitle_Height-2)
-    GUICtrlSetFont($hToast_Close_X,$iToast_Font_Size,Default,Default,"Consolas")
+    GUICtrlSetFont($hToast_DismissAll,$iToast_Font_Size,Default,Default,"Consolas")
     GuiFlatButton_SetState($hToast_OpenTik,$GUI_SHOW)
     GuiFlatButton_SetState($hToast_Close_X,$GUI_SHOW)
     GuiFlatButton_SetState($hToast_DismissAll,$GUI_SHOW)
