@@ -1,3 +1,4 @@
+
 #pragma compile(AutoItExecuteAllowed,True)
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
@@ -5,14 +6,14 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.1415.4013
+#AutoIt3Wrapper_Res_Fileversion=1.2409.1816.2210
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
 #AutoIt3Wrapper_Res_Fileversion_Use_Template=1.%YY%MO.%DD%HH.%MI%SE
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_Run_Au3Stripper=y
-#Au3Stripper_Parameters=/tl /debug /mo
+#Au3Stripper_Parameters=/tl /debug /mo /rsln
 #AutoIt3Wrapper_Change2CUI=n
 #AutoIt3Wrapper_Run_Tidy=n
 #Tidy_Parameters=/kv 0 /reel /tc 2 /tcb 1
@@ -60,6 +61,7 @@ Opt("TrayMenuMode",3)
 #include <Math.au3>
 #include <WinAPISys.au3>
 #include <GuiEdit.au3>
+#include <WinAPIProc.au3>
 
 #include "Includes\JSON_Dictionary.au3"
 #include "Includes\Base64.au3"
@@ -70,10 +72,10 @@ Opt("TrayMenuMode",3)
 #include "Includes\_WinAPI_DPI.au3"
 #include "Includes\_newResolve.au3"
 #include "Includes\_nPing.au3"
-
+Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.1415.4013"
+Global Const $VERSION = "1.2409.1816.2210"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -310,6 +312,7 @@ Global $fToast_bDismissAll=False,$hToast_DismissAll
 ;Global $aQueue[][3]=[[0,0,0]
 
 _Log($sTitle)
+_Log("Debug.StartLine:"&$giLineMain)
 _Log("iDPI: "&$iDpi&@CRLF)
 If FileExists($gsConfigFile) Then $bFirstRun=False
 If Not $bFirstRun Then
@@ -558,6 +561,7 @@ While Sleep(125)
     _Exit()
   EndIf
   $iWatchTimer=TimerInit()
+  _WinAPI_EmptyWorkingSet()
   _Log("MainLoop Took "&TimerDiff($tMainLoop))
 WEnd
 _Log("DropLoop"&@CRLF)
@@ -901,7 +905,7 @@ EndFunc   ;==>_cwmGetTicketList
 
 Func _cwmGetTikNfo($iType,$sId)
   Local $sType=$iType==0 ? "service" : "project"
-  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id,_info/lastUpdated&pageSize=1000')
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id,_info/lastUpdated&pageSize=1')
   If @error Then Return SetError(1,(@extended*10+1),0)
   If IsArray($jTik) Then $jTik=$jTik[0]
   Return SetError(0,0,$jTik)
@@ -944,7 +948,7 @@ Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
   EndIf
   _Log("Fetch Ticket:"&$vTikId&@CRLF)
   ;Sleep(50)
-  $jFetch=_cwmCall('/'&$sType&"/tickets?conditions=id="&$vTikId&"&pageSize=1000")
+  $jFetch=_cwmCall('/'&$sType&"/tickets?conditions=id="&$vTikId&"&pageSize=1")
   If @error Then
     Return SetError(1,(@extended*10+3),0)
   Else
@@ -957,11 +961,15 @@ Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
   ;ConsoleWrite(_JSON_Generate($jFetch)&@CRLF)
   _Log("Get Ticket Notes:"&$vTikId&@CRLF)
   ;Sleep(50)
-  $jTikNotes=_cwmCall('/'&$sType&"/tickets/"&$vTikId&"/allNotes?orderBy=_info/sortByDate desc&pageSize=1000")
+  $jTikNotes=_cwmCall('/'&$sType&"/tickets/"&$vTikId&"/allNotes?orderBy=_info/sortByDate desc&pageSize=1")
   If @error Then
     _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
   Else
     If IsArray($jTikNotes) Then
+      If UBound($jTikNotes,1)<>1 Then
+        _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
+        _ArrayDisplay($jTikNotes)
+      EndIf
       $aTikNfo[$iIdx][3]=$jTikNotes[0]
     Else
       $aTikNfo[$iIdx][3]=$jTikNotes
