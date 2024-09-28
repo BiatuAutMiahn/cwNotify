@@ -6,11 +6,10 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2409.1816.2210
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1000
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
-#AutoIt3Wrapper_Res_Fileversion_Use_Template=1.%YY%MO.%DD%HH.%MI%SE
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_Run_Au3Stripper=y
 #Au3Stripper_Parameters=/tl /debug /mo /rsln
@@ -75,7 +74,7 @@ Opt("TrayMenuMode",3)
 Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2409.1816.2210"
+Global Const $VERSION = "1.1.0.1000"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
