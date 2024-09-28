@@ -16,7 +16,7 @@ cwNotfy works syncronously by retrieving a list of ticket ids /w the last update
 - The notification dialog blocks the code flow of the script until you acknowledge it. ie; cwNotify cannot look for updates while the notification is active.
 - Intermediate changes between update checks are not tracked. ie; If a ticket gets updated 4 times since the last notification, you'll only be notified of the last update when cwNotify does it's next check.
 - The last note shown is the note at the top of the ticket notes, not the last note entered chronologically.
-- The loop interval is 10 sec, getting the list of ticket ids take anywhere from 10 to 20 seconds, so you can expect ticket updates within a minute and soemtimes within 10 seconds.
+- The loop interval is 10 sec, getting the list of ticket ids takes anywhere from 10 to 20 seconds, so you can expect ticket updates within a minute and soemtimes within 10 seconds.
 - Once a ticket is in one of the closed statuses and is older than 7 days it will be removed from the watch list.
 - Some ticket updates will update the last modified time stamp and the notification will not show the field that changed. ie; resource acknowledged, resource added/removed/marked done etc. cwNotify only monitors the following fields: `_info.dateEntered` `_info.lastUpdated` `id` `status.name` `owner.name` `summary` `company.name` `contact.name` `subType.name` `item.name` `priority.name` `severity.name` `type.name` `_info.updatedBy`
 
