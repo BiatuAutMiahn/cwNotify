@@ -32,6 +32,6 @@ cwNotfy works syncronously by retrieving a list of ticket ids /w the last update
 - Rework notify box /w colored text and proper DPI scaling.
 
 # Release Candidate
-`_.rc\cwNotify.async.exe`
+`_.rc\cwNotify.async.exe` in the newFetch branch.
 - Notifications are non-blocking.
 - Ticket retrieval is asynchronous.

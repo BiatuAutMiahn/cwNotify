@@ -6,7 +6,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1004
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1009
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -74,7 +74,7 @@ Opt("TrayMenuMode",3)
 Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1004"
+Global Const $VERSION = "1.1.0.1009"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -281,6 +281,30 @@ Global $bOffline=False,$bOfflineLast=False,$iOfflineThresh=3
 ; Main
 ;
 _Toast_Set(0,-1,-1,-1,-1,-1,"Consolas",125,125)
+
+;~ $sTikTitle="[New Ticket]"
+;~ $sNotify="    Created: 2024.07.30@459p"&@CRLF&_
+;~     "    Updated: 2024.08.02@1213a"&@CRLF&_
+;~     "         id: 1948137"&@CRLF&_
+;~     "     Status: Needs Followup"&@CRLF&_
+;~     "      Owner: <TechnicianA>"&@CRLF&_
+;~     "    Summary: Needs to download all emails from user@domain.tld"&@CRLF&_
+;~     "    Company: <Client Name>"&@CRLF&_
+;~     "    Contact: <Contact Name>"&@CRLF&_
+;~     "    subType: Email"&@CRLF&_
+;~     "       Item: Information"&@CRLF&_
+;~     "   Priority: Standard"&@CRLF&_
+;~     "   Severity: Medium"&@CRLF&_
+;~     "       Type: Request"&@CRLF&_
+;~     "    Creator: <TikCreator>"&@CRLF&_
+;~     "  Last Note: [<TechnicianA>] Assigned/<TechnicianB>/"
+
+;~ $sNotify=BinaryToString(_Base64Decode("ICAgIENyZWF0ZWQ6IDIwMjQuM;kuMzBAMTIyNGENCiAgICBVcGRhdGVkOiAyMDI0LjA5LjMwQDMwMnANCiAgICAgICAgIGlkOiAyMDIyOTM1DQogICAgIFN0YXR1czogTmVlZHMgRXNjYWxhdGlvbg0KICAgICAgT3duZXI6IENocmlzdG9waGVyIEdvcmRvbg0KICAgIFN1bW1hcnk6IE5ldyBWb2ljZSBNZXNzYWdlIGZyb20gU2VydmljZSBEZXNrIC0gRUlLTyBHTE9CQUwgKDkxMykgNjY3LTg1MzUgb24gMDkvMzAvMjAyNCAxMDoyMyBBTQ0KICAgIENvbXBhbnk6IEVpS08gR2xvYmFsIExMQw0KICAgIENvbnRhY3Q6IEVpS08gU3VwcG9ydA0KICAgIHN1YlR5cGU6ICpNVVNUIENIQU5HRSoNCiAgICAgICBJdGVtOiAqTVVTVCBDSEFOR0UqDQogICBQcmlvcml0eTogVXJnZW50DQogICBTZXZlcml0eTogTWVkaXVtDQogICAgICAgVHlwZTogSW5jaWRlbnQNCk1vZGlmaWVkIEJ5OiBqaHV0dG8gLT4gY2dvcmRvbg0KICBMYXN0IE5vdGU6IFtSaW5nQ2VudHJhbF0gIVtcW0xvZ29cXV0oaHR0cHM6Ly9uZXRzdG9yYWdlLnJpbmdjZW50cmFsLmNvbS9lbWFpbC8xeDEuZ2lmKSFbXFtMb2dvXF1dKGh0dHBzOi8vbmV0c3RvcmFnZS5yaW5nY2VudHJhbC5jb20vZW1haWwvMXgxLmdpZikKIVtcW0xvZ29cXV0oaHR0cHM6Ly9uZXRzdG9yYWdlLnJpbmdjZW50cmFsLmNvbS9pbWFnZXMvdW5zL3JpbmdjZW50cmFsL2xvZ28vZGVmYXVsdC8yMDIzL2xvZ28tZW5fVVMucG5nKVZvaWNlIE1lc3NhZ2UKCkRlYXIgU2VydmljZSBWb2ljZW1haWwsICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKWW91IGhhdmUgYSBuZXcgdm9pY2UgbWVzc2FnZToKKipGcm9tOioqU2VydmljZSBEZXNrIC0gRUlLTyBHTE9CQUwgXCg5MTNcKSA2NjctODUzNQoqKlJlY2VpdmVkOioqTW9uZGF5LCBTZXB0ZW1iZXIgMzAsIDIwMjQgYXQgMTA6MjMgQU0KKipMZW5ndGg6KiowMDozNAoqKlRvOioqXCg4NTVcKSA0MTEtMzM4NyBcKiA5OTk4IFNlcnZpY2UgVm9pY2VtYWlsCgoqKlZvaWNlbWFpbCBQcmV2aWV3OioqCgoiWWVhaCwgbXkgbmFtZSBpcyBCb2JieSBSb3NzLiBUZWxlcGhvbmUgbnVtYmVycyA5MTM5MTUwMzQ3SSB3YXMganVzdCBnaXZpbmcgeW91IGEgY2FsbC4gSSBoYWQgYSBraW5kIG9mIGFuIG9kZCBlbWFpbCBzaXR1YXRpb24sIG5vdCBzdXJlIGhvdyBpdCBoYXBwZW5lZCwgYnV0IEkganVzdCB3YW50ZWQgdG8gdGFsayB0byBzb21lYm9keSBpbiB0aGUgU09DIHRvIHNlZSBpZiB0aGV5IGNhbiBsZW5kIHNvbWUgYXNzaXN0YW5jZSBhbmQgZmlndXJpbmcgb3V0IGhvdyBpdCBob3cgaXQgaGFwcGVuZWQuIE15IHRlbGVwaG9uZSBudW1iZXIgYWdhaW4gaXMgOTEzLTkxNS0wMzQ3LCB0aGFuayB5b3UuIiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCgpMaXN0ZW4gdG8gdGhpcyB2b2ljZW1haWwgb3ZlciB5b3VyIHBob25lIG9yIGJ5IG9wZW5pbmcgdGhlIGF0dGFjaGVkIHNvdW5kIGZpbGUuIFlvdSBjYW4gYWxzbyBzaWduIGluIHRvIHlvdXIgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBbUmluZ0NlbnRyYWwgYWNjb3VudF0oaHR0cHM6Ly9zZXJ2aWNlLnJpbmdjZW50cmFsLmNvbSkgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHdpdGggeW91ciBtYWluIG51bWJlciwgZXh0ZW5zaW9uIG51bWJlciwgYW5kIHBhc3N3b3JkIHRvIG1hbmFnZSBhbmQgbGlzdGVuIHRvIHZvaWNlbWFpbHMuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAoKVGhhbmsgeW91IGZvciB1c2luZyBSaW5nQ2VudHJhbCEKCldvcmsgZnJvbSBhbnl3aGVyZSB3aXRoIHRoZSBSaW5nQ2VudHJhbCBhcHAuIEl0J3MgZ290IGV2ZXJ5dGhpbmcgeW91IG5lZWQgdG8gc3RheSBjb25uZWN0ZWQ6IHRlYW0gbWVzc2FnaW5nLCB2aWRlbyBtZWV0aW5ncyBhbmQgcGhvbmUgLSBhbGwgaW4gb25lIGFwcC4gW0dldCBzdGFydGVkXShodHRwczovL2FwcC5yaW5nY2VudHJhbC5jb20pCgpCeSBzdWJzY3JpYmluZyB0byBhbmQvb3IgICAgICAgICAgICAgICAgICAgICAgICB1c2luZyBSaW5nQ2VudHJhbCwgeW91IGFja25vd2xlZGdlIGFncmVlbWVudCB0byAgICAgICAgICAgICAgICAgICAgICAgIG91ciBbVGVybXMgb2YgVXNlXShodHRwczovL3d3dy5yaW5nY2VudHJhbC5jb20vbGVnYWwvZXVsYXRvcy5odG1sKS4gCgpDb3B5cmlnaHQgMjAyNCBSaW5nQ2VudHJhbCwgSW5jLiBBbGwgcmlnaHRzIHJlc2VydmVkLiBSaW5nQ2VudHJhbCBhbmQgdGhlIFJpbmdDZW50cmFsIGxvZ28gYXJlIHRyYWRlbWFya3Mgb2YgUmluZ0NlbnRyYWwsIEluYy4sICAgICAgICAgICAgICAgICAgICAgICAgMjDCoERhdmlzwqBEcml2ZSwgQmVsbW9udCwgQ0HCoDk0MDAyLCBVU0Eu"))
+;~ $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
+;~ If @error Then _Log(StringFormat("~!Error@%s,_Toast_ShowMod:%s:%s",@ScriptLineNumber,@Error,@extended))
+;~ MsgBox(64,"",$fToast_bDismissAll)
+;~ Exit
+
 ; Tray Config
 Opt("TrayIconHide",0)
 TraySetToolTip($sAlias)
@@ -369,27 +393,6 @@ _Log("Initializing cwm...Done")
 
 $iTimer=TimerInit()
 Local $bDev=@Compiled ? False : True
-
-;~ $sTikTitle="[New Ticket]"
-;~ $sNotify="    Created: 2024.07.30@459p"&@CRLF&_
-;~     "    Updated: 2024.08.02@1213a"&@CRLF&_
-;~     "         id: 1948137"&@CRLF&_
-;~     "     Status: Needs Followup"&@CRLF&_
-;~     "      Owner: <TechnicianA>"&@CRLF&_
-;~     "    Summary: Needs to download all emails from user@domain.tld"&@CRLF&_
-;~     "    Company: <Client Name>"&@CRLF&_
-;~     "    Contact: <Contact Name>"&@CRLF&_
-;~     "    subType: Email"&@CRLF&_
-;~     "       Item: Information"&@CRLF&_
-;~     "   Priority: Standard"&@CRLF&_
-;~     "   Severity: Medium"&@CRLF&_
-;~     "       Type: Request"&@CRLF&_
-;~     "    Creator: <TikCreator>"&@CRLF&_
-;~     "  Last Note: [<TechnicianA>] Assigned/<TechnicianB>/"
-
-;~ $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
-;~ MsgBox(64,"",$fToast_bDismissAll)
-;~ Exit
 
 
 ;1961209
@@ -482,9 +485,10 @@ While Sleep(125)
       ; If tik exists and date is not newer,then skip.
       If $aTiks[$i][1]<=$aTiksLast[$iIdxLast][1] Then ContinueLoop
       $sUpdater=_JSON_Get($tNew,'_info.updatedBy')
-      If $sUpdater=$g_cwm_sUser Then
+      If $sUpdater<>$g_cwm_sUser Then ; Skip Updates by ourselves.
         _Log("Skipped Tik Mod By: "&$sUpdater)
-        ContinueLoop         ; Skip Updates by ourselves.
+        $bCommit=True
+        ContinueLoop
       EndIf
       $sTikTitle="[Ticket Updated]"
       _tikGetFields($aTiksLast[$i][2],$aOldFields,$sModFields)
@@ -1405,14 +1409,16 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
   If @error Then
     If @error=3 Then
-      $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
-      If @error Then
-        $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
-        Return SetError(3,0,-1)
-      EndIf
+      Local $iScale=0.05
+      Do
+        $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,@DesktopWidth*$iScale,$hToast_Handle)
+        $iScale+=0.05
+      Until @error<>3
+      _Log("iScaleFix="&$iScale)
+    Else
+      $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
+      Return SetError((@Error*10)+3,0,-1)
     EndIf
-    $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
-    Return SetError(3,0,-1)
   EndIf
   ; Reset text to match rectangle
   $sMessage=$aLabel_Pos[0]
