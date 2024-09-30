@@ -5,11 +5,10 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2409.1816.2210
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1001
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
-#AutoIt3Wrapper_Res_Fileversion_Use_Template=1.%YY%MO.%DD%HH.%MI%SE
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_Run_Au3Stripper=y
 #Au3Stripper_Parameters=/tl /debug /mo /rsln
@@ -1216,7 +1215,7 @@ $iWidth += $iMax_ColWidth
 Else
 $iWidth += $aiColWidth[$i]
 EndIf
-If $i < 20 And $bDebug Then ConsoleWrite('@@ Debug(' & "arraydisplayinternals:445/1219" & ') : $iWidth = ' & $iWidth & " $i = " & $i & @CRLF)
+If $i < 20 And $bDebug Then ConsoleWrite('@@ Debug(' & "arraydisplayinternals:445/1218" & ') : $iWidth = ' & $iWidth & " $i = " & $i & @CRLF)
 Next
 EndIf
 If $iWidth > @DesktopWidth - 100 Then
@@ -20537,6 +20536,7 @@ If $iSize = Default Then $iSize = 8.5
 If $iWeight = Default Then $iWeight = 400
 If $iAttrib = Default Then $iAttrib = 0
 If $sName = "" Or $sName = Default Then	$sName = _StringSize_DefaultFontName()
+If $iMaxWidth = Default Then $iMaxWidth = 0
 If Not IsString($sText) Then Return SetError(1, 1, 0)
 If Not IsNumber($iSize) Then Return SetError(1, 2, 0)
 If Not IsInt($iWeight) Then Return SetError(1, 3, 0)
@@ -30119,9 +30119,9 @@ $aRet[$iMax][4]=$data_dec
 Next
 return $aRet
 EndFunc
-Global Const $giLineMain="75/30122"
+Global Const $giLineMain="74/30122"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2409.1816.2210"
+Global Const $VERSION = "1.1.0.1001"
 Global $sTitle=$sAlias&" v"&$VERSION
 Global $gsDataDir=@LocalAppDataDir&"\InfinitySys\cwNotifier"
 Global $gsLogFile=$gsDataDir&"\cwNotifier.log"
@@ -31068,8 +31068,15 @@ EndIf
 EndIf
 Local $iMax_Label_Width=$iToast_Width_max-20-$iIcon_Reduction
 If $fRaw=True Then $iMax_Label_Width=0
-Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width)
+Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
 If @error Then
+If @error=3 Then
+Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
+If @error Then
+$nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
+Return SetError(3,0,-1)
+EndIf
+EndIf
 $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
 Return SetError(3,0,-1)
 EndIf

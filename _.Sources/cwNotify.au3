@@ -6,7 +6,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1000
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1001
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -74,7 +74,7 @@ Opt("TrayMenuMode",3)
 Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1000"
+Global Const $VERSION = "1.1.0.1001"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -1401,8 +1401,15 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   Local $iMax_Label_Width=$iToast_Width_max-20-$iIcon_Reduction
   If $fRaw=True Then $iMax_Label_Width=0
   ; Get message label size
-  Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width)
+  Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
   If @error Then
+    If @error=3 Then
+      Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
+      If @error Then
+        $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
+        Return SetError(3,0,-1)
+      EndIf
+    EndIf
     $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
     Return SetError(3,0,-1)
   EndIf
