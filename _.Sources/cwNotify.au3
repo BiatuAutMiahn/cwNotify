@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
 #AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1013
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1015
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Res_Language=1033
@@ -71,7 +71,7 @@ Opt("TrayIconDebug", 1)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1013"
+Global Const $VERSION = "1.1.0.1015"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -208,7 +208,7 @@ Global $aNotify[]=[0]
 Global $aTiksLast[][4]=[[0,'','','']]
 Global $aTiks[][4]=[[0,'','','']]
 Global $bExit
-
+Global $bPurgeTik
 Global $g_cwm_oHttp
 Global $g_cwm_sEpoch="1970/01/01 00:00:00"
 Global $g_cwm_sCI,$g_cwm_sCompany,$g_cwm_sCodeBase,$g_cwm_sSiteUrl,$g_cwm_sApiUri,$g_cwm_sClientId,$g_cwm_sAuthToken,$g_cwm_sUrlComm
@@ -449,7 +449,7 @@ Func tikNotify()
         $aQueue[0][0]=0
         $aQueue[0][1]=1
         $fToast_bDismissAll=False
-        ;_saveState() ; Finally, Serialize $aTiksLast, and save.
+        _saveState() ; Finally, Serialize $aTiksLast, and save.
         Return
     EndIf
     If $fToast_bDismissAll Then ; If user invokes DismissAll, then we ignore this batch of updates.
@@ -657,7 +657,7 @@ Func tikWatch()
             $aTiksLast[$iIdxLast][$j]=$aTiks[$i][$j]
         Next
     Next
-    _PurgeOldTiks();If _PurgeOldTiks() Then FileDelete($gsStateFile); Purge Resolved/Closed>7 days.
+    If _PurgeOldTiks() Then $bPurgeTik=True ;If _PurgeOldTiks() Then FileDelete($gsStateFile); Purge Resolved/Closed>7 days.
     ;_saveState() ; Finally,Serialize $aTiksLast,and save.
   EndIf
   _Log("MainLoop Took "&TimerDiff($tMainLoop))
@@ -896,6 +896,10 @@ EndFunc   ;==>_loadState
 
 Func _saveState()
   _Log("Saving State...")
+  If $bPurgeTik Then
+    FileDelete($gsStateFile)
+    $bPurgeTik=False
+  EndIf
   DirCreate($gsDataDir)
   For $i=1 To $aTiksLast[0][0]
     IniWrite($gsStateFile,$aTiksLast[$i][0],"LastMod",$aTiksLast[$i][1])
