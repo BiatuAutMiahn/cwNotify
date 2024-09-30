@@ -6,7 +6,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1001
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1004
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -74,7 +74,7 @@ Opt("TrayMenuMode",3)
 Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1001"
+Global Const $VERSION = "1.1.0.1004"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -511,6 +511,7 @@ While Sleep(125)
     _Log($sTikTitle&@CRLF&$sNotify&@CRLF)
     If $fToast_bDismissAll=False Then
       $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
+      If @error Then _Log(StringFormat("~!Error@%s,_Toast_ShowMod:%s:%s",@ScriptLineNumber,@Error,@extended))
       If $fToast_OpenTik Then
         ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aTiks[$i][0]&"&companyName="&$g_cwm_sCompany)
       EndIf
@@ -1404,7 +1405,7 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
   If @error Then
     If @error=3 Then
-      Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
+      $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
       If @error Then
         $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
         Return SetError(3,0,-1)
