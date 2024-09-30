@@ -2,11 +2,11 @@
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
 #AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1010
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1013
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Res_Language=1033
-#AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
+#AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.async.rc
 #Tidy_Parameters=/kv 0 /reel /tc 2 /tcb 1
 #AutoIt3Wrapper_Run_Au3Stripper=y
 #Au3Stripper_Parameters=/tl /debug /mo /rsln
@@ -71,7 +71,7 @@ Opt("TrayIconDebug", 1)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1010"
+Global Const $VERSION = "1.1.0.1013"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -411,25 +411,35 @@ _Toast_Hide()
 ConsoleWrite("Watching Tickets..."&@CRLF)
 $bNotifyLock=True
 Global $iHB=1
-AdlibRegister("Test",125)
+Global $bIncNotify=False
+;AdlibRegister("Test",125)
 tikWatch()
+$iWatchTimer=TimerInit()
 If $bAsync Then
     AdlibRegister("doOfflineCheck",500)
     AdlibRegister("idleCheck",5000)
-    AdlibRegister("tikWatch",$iWatchInterval)
+    AdlibRegister("tikNotify",250)
+    ;AdlibRegister("tikWatch",$iWatchInterval)
 EndIf
 
 ; Cannot iterate over an array that is being modified.
 While Sleep(125)
     If $bExit Then _Exit()
-    If Not $bAsync Then
-        doOfflineCheck()
-        idleCheck()
-    EndIf
     If $bNotifyLock Then ContinueLoop ; Wait for queue to finish updating
+    If TimerDiff($iWatchTimer)>=$iWatchInterval Then
+      tikWatch()
+      $iWatchTimer=TimerInit()
+    EndIf
+WEnd
+
+Func tikNotify()
+    If $bExit Then _Exit()
+    doOfflineCheck()
+    idleCheck()
+    If $bNotifyLock Or $bIncNotify Then Return ; Wait for queue to finish updating
     If $aQueue[0][0]=0 Then; If there are no new events, continue loop.
-        If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
-        ContinueLoop
+        ;If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
+        Return
     EndIf
     $iIdx=$aQueue[0][1]
     $iIdxMax=$aQueue[0][0]
@@ -440,38 +450,44 @@ While Sleep(125)
         $aQueue[0][1]=1
         $fToast_bDismissAll=False
         ;_saveState() ; Finally, Serialize $aTiksLast, and save.
-        ContinueLoop
+        Return
     EndIf
     If $fToast_bDismissAll Then ; If user invokes DismissAll, then we ignore this batch of updates.
         $aQueue[0][1]=$iIdxMax
-        ContinueLoop
+        Return
     EndIf
-
-    While $hToast_Handle<>0; Wait for previous toast to close.
-        If $bExit Then _Exit()
-        _Toast_Hide()
-        _TimerSleep(125)
-    WEnd
+    If $hToast_Handle<>0 Then Return
     $aRet=_Toast_ShowMod(0,$aQueue[$iIdx][0],$aQueue[$iIdx][1],Null,True,True) ; Spawn toast.
     If @error Then
         _Log(StringFormat("~!Error@Main:_Toast_ShowMod,%s,%s",@Error,@Extended))
     EndIf
-    While $hToast_Handle<>0
-        If $bExit Then _Exit()
-        _TimerSleep(125)
-        If $fToast_Close Then ExitLoop
-    WEnd
-    ; Do toast actions.
-    If $fToast_OpenTik Then
-        ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aQueue[$iIdx][2]&"&companyName="&$g_cwm_sCompany)
-    EndIf
-    $fToast_OpenTik=False
-    _Toast_Hide()
-    While $bNotifyLock ; Wait for queue to finish updating
-        _TimerSleep(125)
-    WEnd
-    $aQueue[0][1]+=1
-WEnd
+    AdlibRegister("waitNotify",50)
+EndFunc
+
+Func waitNotify()
+  If Not $fToast_Close Then Return
+  AdlibUnRegister("waitNotify")
+  If $fToast_OpenTik Then
+      ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aQueue[$iIdx][2]&"&companyName="&$g_cwm_sCompany)
+  EndIf
+  $fToast_OpenTik=False
+  _Toast_Hide()
+  If $bNotifyLock Then
+    $bIncNotify=True
+    AdlibRegister("incNotify",50)
+  Else
+      $aQueue[0][1]+=1
+      AdlibRegister("waitNotify",50)
+  EndIf
+EndFunc
+
+Func incNotify()
+  If $bNotifyLock Then Return
+  AdlibUnRegister("incNotify")
+  $bIncNotify=False
+  $aQueue[0][1]+=1
+  AdlibRegister("waitNotify",50)
+EndFunc
 
 Func test()
     ConsoleWrite("HeartBeat:"&$iHB&@CRLF)
@@ -504,10 +520,11 @@ Func idleCheck()
 EndFunc
 
 Func _TimerSleep($iTimer)
-    Local $hTimer=TimerInit()
-    While TimerDiff($hTimer)<=$iTimer
-        Sleep(1)
-    WEnd
+    Sleep($iTimer)
+    ;Local $hTimer=TimerInit()
+    ;While TimerDiff($hTimer)<=$iTimer
+    ;    Sleep(1)
+    ;WEnd
 EndFunc
 
 Func _strTrunc($sStr,$iLen); Split words that are too big
@@ -520,11 +537,6 @@ Func tikWatch()
   If $bOffline Then Return
   If $bUserIdle Then Return
   $tMainLoop=TimerInit()
-  If $bAsync Then
-      AdlibUnRegister("tikWatch")
-  Else
-      $iWatchTimer=TimerInit()
-  EndIf
   $bNotifyLock=True
   $bBatch=True
   $iTimer=TimerInit()
@@ -536,9 +548,9 @@ Func tikWatch()
   If @error Then
     _Log("Error "&@extended&",cannot check for Service tickets.")
     If $bAsync Then
-        AdlibRegister("tikWatch",$iWatchInterval)
+        ;AdlibRegister("tikWatch",$iWatchInterval)
       Else
-          $iWatchTimer=TimerInit()
+        $iWatchTimer=TimerInit()
     EndIf
     Return
   EndIf
@@ -549,7 +561,7 @@ Func tikWatch()
   EndIf
   If @error Then
     _Log("Error "&@extended&",cannot check for Project tickets.")
-    If $bAsync Then AdlibRegister("tikWatch",$iWatchInterval)
+    ;If $bAsync Then AdlibRegister("tikWatch",$iWatchInterval)
     Return
   EndIf
   Local $bNotify
@@ -559,7 +571,7 @@ Func tikWatch()
   $bCommit=False
   $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
-    ;Sleep($iUniDelay)
+
     If $bExit Then _Exit()
     $bNewTik=False
     $bNotify=False
@@ -586,7 +598,7 @@ Func tikWatch()
       _tikGetFields($aTiksLast[$i][2],$aOldFields,$sModFields)
       _tikGetFields($tNew,$aModFields,$sModFields)
       For $j=1 To $aModFields[0][0]
-        ;Sleep($iUniDelay)
+
         If _isFieldNoMod($aModFields[$j][0]) Or StringCompare($aOldFields[$j][1],$aModFields[$j][1])==0 Then
           $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: %s",_getFieldDesc($aModFields[$j][0]),$aModFields[$j][1])&@CRLF
         Else
@@ -632,7 +644,7 @@ Func tikWatch()
     ;
     ;_DebugArrayDisplay($aTiksLast)
     For $i=1 To $aTiks[0][0]
-        ;Sleep($iUniDelay)
+
         If $bExit Then _Exit()
         $iIdxLast=_cwmInArray($aTiksLast,$aTiks[$i][0])
         If @error Then
@@ -650,11 +662,6 @@ Func tikWatch()
   EndIf
   _Log("MainLoop Took "&TimerDiff($tMainLoop))
   $bNotifyLock=False
-  If $bAsync Then
-      AdlibRegister("tikWatch",$iWatchInterval)
-  Else
-      $iWatchTimer=TimerInit()
-  EndIf
 EndFunc
 
 _Log("DropLoop"&@CRLF)
@@ -971,7 +978,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
     WEnd
     $iCol=UBound($vUrl,2)-1
     For $i=1 To $vUrl[0][0]
-        ;Sleep($iUniDelay)
+
         ;_Log(StringFormat("CurlURL: '%s'\r\n",$vUrl[$i][$iCol-4]))
         $vUrl[$i][$iCol-3]=Curl_Easy_Init()
         Curl_Easy_Setopt($vUrl[$i][$iCol-3],$CURLOPT_URL,$vUrl[$i][$iCol-4])
@@ -981,13 +988,13 @@ Func _curlGet($vUrl,$bCwmCall=False)
         ;$vUrl[$i][0]=Curl_Easy_Escape(0,$vUrl[$i][0])
     Next
 	Do
-        ;Sleep($iUniDelay)
+
         $iIdx=0
         $vRet=Null
 		Curl_Multi_Perform($hMulti,$bRun)
         $iQueue=0
         Do
-            ;Sleep($iUniDelay)
+
             $vMsg=Curl_Multi_Info_Read($hMulti,$iQueue)
             $iMsg=DllStructGetData($vMsg, "msg")
             If $iMsg<>$CURLMSG_DONE Then ContinueLoop
@@ -1054,14 +1061,14 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     _Log("GetNewTikNfo...")
     ;_DebugArrayDisplay($aTikNfo,$sType)
     For $i=1 To $aTikNfo[0][0]
-        ;Sleep($iUniDelay)
+
         If $bExit Then _Exit()
         If $iType<>$aTikNfo[$i][4] Then ContinueLoop
         $iMax=UBound($aPastIds,1)
         ReDim $aPastIds[$iMax+1]
         $aPastIds[$iMax]=StringFormat($sPastComUrl,$aTikNfo[$i][0])
         $aPastIds[0]=$iMax
-        ;Sleep($iUniDelay)
+
     Next
     $iMax=UBound($aPastIds,1)
     ReDim $aPastIds[$iMax+1]
@@ -1078,7 +1085,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     If IsArray($aPastIds) Then
         $aPastIds[0][0]-=1
         For $i=1 To $aPastIds[0][0]
-            ;Sleep($iUniDelay)
+
             $jRet=_JSON_Parse($aPastIds[$i][4])
             If IsArray($jRet) Then $jRet=$jRet[0]
             $aPastIds[$i][0]=$jRet
@@ -1108,7 +1115,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     _Log("GetTikDetail...")
     Local $aFetch[][4]=[[0,'','']]
     For $t In $jRet
-        ;Sleep($iUniDelay)
+
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$t)
         If Not $vRet Then ContinueLoop
@@ -1128,7 +1135,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
     Next
     For $i=1 To $aPastIds[0][0]
-        ;Sleep($iUniDelay)
+
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$aPastIds[$i][0])
         If Not $vRet Then ContinueLoop
@@ -1153,7 +1160,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     ;_DebugArrayDisplay($aTiksNew)
     $iCol=UBound($aTiksNew,2)-1
     For $i=1 To $aTiksNew[0][0]
-        ;Sleep($iUniDelay)
+
         $aTiksNew[$i][$iCol]=_JSON_Parse($aTiksNew[$i][$iCol])
         If IsArray($aTiksNew[$i][$iCol]) Then $aTiksNew[$i][$iCol]=($aTiksNew[$i][$iCol])[0]
         $iIdx=$aTiksNew[$i][0]
@@ -1203,7 +1210,7 @@ Func _cwmInit()
 EndFunc   ;==>_cwmInit
 
 Func _cwmProcTikNew(ByRef $aTikNfo,$iType,$t)
-  ;Sleep($iUniDelay)
+
   Local $sType=($iType=0?"service":"project")
   ;_Log(_JSON_Generate($t))
   $vTikId=_JSON_Get($t,"id")
