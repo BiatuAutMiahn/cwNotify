@@ -24,9 +24,14 @@ cwNotfy works syncronously by retrieving a list of ticket ids /w the last update
 - Async ticket updates (libcurl)
 - Queue update notifications (for non-blocking notify)
 - Summary dialog
-- snooze button
-- auto dismiss option
+- Snooze Button
+- Suspend updates option
+- Auto dismiss option
 - Manually add a ticket to watch
 - option to ignore/stop monitoring a ticket.
 - Rework notify box /w colored text and proper DPI scaling.
 
+# Release Candidate
+`_.rc\cwNotify.async.exe`
+- Notifications are non-blocking.
+- Ticket retrieval is asynchronous.
