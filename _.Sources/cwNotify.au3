@@ -1,27 +1,17 @@
-#pragma compile(AutoItExecuteAllowed,True)
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
-#AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.exe
-#AutoIt3Wrapper_UseUpx=n
+#AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.2408.708.4758
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1010
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
-#AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
-#AutoIt3Wrapper_Res_Fileversion_Use_Template=1.%YY%MO.%DD%HH.%MI%SE
 #AutoIt3Wrapper_Res_Language=1033
-#AutoIt3Wrapper_Run_Au3Stripper=y
-#Au3Stripper_Parameters=/tl /debug /mo
-#AutoIt3Wrapper_Change2CUI=n
-#AutoIt3Wrapper_Run_Tidy=n
+#AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
 #Tidy_Parameters=/kv 0 /reel /tc 2 /tcb 1
+#AutoIt3Wrapper_Run_Au3Stripper=y
+#Au3Stripper_Parameters=/tl /debug /mo /rsln
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-
-#pragma compile(AutoItExecuteAllowed,False)
-Opt("TrayAutoPause",0)
-Opt("TrayIconHide",1)
-Opt("TrayMenuMode",3)
+#pragma compile(AutoItExecuteAllowed,True)
 
 #cs ----------------------------------------------------------------------------
 
@@ -60,6 +50,7 @@ Opt("TrayMenuMode",3)
 #include <Math.au3>
 #include <WinAPISys.au3>
 #include <GuiEdit.au3>
+#include <WinAPIProc.au3>
 
 #include "Includes\JSON_Dictionary.au3"
 #include "Includes\Base64.au3"
@@ -72,14 +63,21 @@ Opt("TrayMenuMode",3)
 #include "Includes\_nPing.au3"
 #include "Includes\CurlMemDll.au3"
 
+Opt("TrayAutoPause",0)
+Opt("TrayIconHide",1)
+Opt("TrayMenuMode",3)
+Opt("TrayIconDebug", 1)
+
+
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.2408.708.4758"
+Global Const $VERSION = "1.1.0.1010"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
 Global $gsDataDir=@LocalAppDataDir&"\InfinitySys\cwNotifier"
 Global $gsLogFile=$gsDataDir&"\cwNotifier.log"
+Global $iUniDelay=1
 
 Func _Log($sLog)
   DirCreate($gsDataDir)
@@ -210,10 +208,8 @@ Global $aNotify[]=[0]
 Global $aTiksLast[][4]=[[0,'','','']]
 Global $aTiks[][4]=[[0,'','','']]
 Global $bExit
-Global $hToast_Handle
 
 Global $g_cwm_oHttp
-Global $g_cwm_hCurl
 Global $g_cwm_sEpoch="1970/01/01 00:00:00"
 Global $g_cwm_sCI,$g_cwm_sCompany,$g_cwm_sCodeBase,$g_cwm_sSiteUrl,$g_cwm_sApiUri,$g_cwm_sClientId,$g_cwm_sAuthToken,$g_cwm_sUrlComm
 Global $g_cwm_sClientId,$g_cwm_sPrivKey,$g_cwm_sPubKey,$g_cwm_sUser,$g_cwm_jLastRet
@@ -292,12 +288,13 @@ _nResolveUpdateInfoDNS()
 Local $bExit=False
 
 $idTrayExit=TrayCreateItem("Exit")
-AdlibRegister("_TrayEvent",20)
+AdlibRegister("_TrayEvent",50)
 
 _Toast_Hide()
 
 Global $iWatchTimer=TimerInit()
 Global $iWatchInterval=10000
+;Global $iWatchInterval=10
 Global $bFirstRun=True
 Global $iMaxUrlLen=1745
 
@@ -309,11 +306,15 @@ Local $vTikId,$vTikLastUpdate
 Global $iUserIdle,$bUserIdle,$bUserIdleLast,$bWsLock,$bWsLockLast
 Global $fToast_OpenTik=False,$hToast_OpenTik
 Global $fToast_bDismissAll=False,$hToast_DismissAll
+Global $bAsync=1;False
 
 ;Global $aQueue[][3]=[[0,0,0]
 
 _Log($sTitle)
+;_Log("Debug.StartLine:"&$giLineMain)
 _Log("iDPI: "&$iDpi&@CRLF)
+;MsgBox(64,"",StringFormat("%s:%s:%s",@ScriptLineNumber,$giLineMain,@ScriptLineNumber-$giLineMain))
+;Exit
 If FileExists($gsConfigFile) Then $bFirstRun=False
 If Not $bFirstRun Then
   $tDelay=TimerInit()
@@ -323,14 +324,14 @@ If Not $bFirstRun Then
   _loadState()
   If Not @error Then $bFirstRun=False
   _Log("Loading State...Done")
-  While TimerDiff($tDelay)<=5000
-    Sleep(125)
-  WEnd
-  _Toast_Hide()
 Else
   $aRet=_Toast_ShowMod(0,$sTitle,"Welcome to "&$sTitle,-5)
-  _Toast_Hide()
 EndIf
+While TimerDiff($tDelay)<=5000
+    Sleep(125)
+WEnd
+_Toast_Hide()
+
 While doOfflineCheck()
   Sleep(125)
 WEnd
@@ -344,17 +345,17 @@ If StringInStr($CmdLineRaw,"~!PrePurgeOldTiks") And Not $bFirstRun Then
   _Log("Purging Old Tiks...Done")
 EndIf
 
-;_Log("Initializing WinHttp...")
-;$iTimer=TimerInit()
-;_InitHttp()
-;_InitCurl()
-
-;If @error Then
-;  _Log((@error*1000)+@extended)
-;  _Exit()
-;EndIf
-;_Log("Initializing WinHttp...Done")
-
+Global $bCurl=1;False
+If Not $bCurl Then
+  _Log("Initializing WinHttp...")
+  $iTimer=TimerInit()
+  _InitHttp()
+  If @error Then
+    _Log((@error*1000)+@extended)
+    _Exit()
+  EndIf
+  _Log("Initializing WinHttp...Done")
+EndIf
 _Log("Loading Config...")
 _loadConfig()
 
@@ -362,6 +363,7 @@ If $g_cwm_sCompany=='' Or $g_cwm_sClientId=='' Or $g_cwm_sPrivKey=='' Or $g_cwm_
   _cwmAuth()
   _loadConfig()
 EndIf
+
 _Log("Loading Config...Done")
 _Log("Initializing cwm...")
 _cwmInit()
@@ -394,38 +396,90 @@ Local $bDev=@Compiled ? False : True
 ;~ $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
 ;~ MsgBox(64,"",$fToast_bDismissAll)
 ;~ Exit
-Local $aQueue[1][4]
+
+; Notification Queue IN
+Local $bNotifyLock
+Local $iQueueY=4
+Local $aQueue[1][$iQueueY]
 $aQueue[0][0]=0
-
-ConsoleWrite("Watching Tickets..."&@CRLF)
-
-;_cwmGetTiksNew($aTiks,0,$g_cwm_sUser)
+$aQueue[0][1]=1
+_Toast_Hide()
+;1961209
+;$jFetch=_cwmCall("/service/tickets?conditions=id=1961209&pageSize=1000")
+;ClipPut(_JSON_Generate($jFetch))
 ;Exit
-;_DebugArrayDisplay($aTiks)
-AdlibRegister("doOfflineCheck",250)
-AdlibRegister("idleCheck",5000)
-AdlibRegister("tikWatch",$iWatchInterval)
+ConsoleWrite("Watching Tickets..."&@CRLF)
+$bNotifyLock=True
+Global $iHB=1
+AdlibRegister("Test",125)
+tikWatch()
+If $bAsync Then
+    AdlibRegister("doOfflineCheck",500)
+    AdlibRegister("idleCheck",5000)
+    AdlibRegister("tikWatch",$iWatchInterval)
+EndIf
 
+; Cannot iterate over an array that is being modified.
 While Sleep(125)
-    For $i=$aQueue[0][1] To $aQueue[0][0]
-        If $fToast_bDismissAll=False Then ContinueLoop
-        Do
-            Sleep(125)
-        Until $hToast_Handle<>0
-        $aRet=_Toast_ShowMod(0,$aQueue[$i][0],$aQueue[$i][1],Null,True,True)
-        Do
-            Sleep(125)
-        Until $fToast_Close
-        If $fToast_OpenTik Then
-            ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aQueue[$i][2]&"&companyName="&$g_cwm_sCompany)
-        EndIf
-        $fToast_OpenTik=False
+    If $bExit Then _Exit()
+    If Not $bAsync Then
+        doOfflineCheck()
+        idleCheck()
+    EndIf
+    If $bNotifyLock Then ContinueLoop ; Wait for queue to finish updating
+    If $aQueue[0][0]=0 Then; If there are no new events, continue loop.
+        If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
+        ContinueLoop
+    EndIf
+    $iIdx=$aQueue[0][1]
+    $iIdxMax=$aQueue[0][0]
+    If $iIdx=$iIdxMax Or $bFirstRun Then ; If we're caught up or during first run, clear queue and continue to wait.
+        $bFirstRun=False
+        Dim $aQueue[1][$iQueueY]
+        $aQueue[0][0]=0
+        $aQueue[0][1]=1
+        $fToast_bDismissAll=False
+        ;_saveState() ; Finally, Serialize $aTiksLast, and save.
+        ContinueLoop
+    EndIf
+    If $fToast_bDismissAll Then ; If user invokes DismissAll, then we ignore this batch of updates.
+        $aQueue[0][1]=$iIdxMax
+        ContinueLoop
+    EndIf
+
+    While $hToast_Handle<>0; Wait for previous toast to close.
+        If $bExit Then _Exit()
         _Toast_Hide()
-    Next
-    $aQueue[0][1]=$aQueue[0][0]
+        _TimerSleep(125)
+    WEnd
+    $aRet=_Toast_ShowMod(0,$aQueue[$iIdx][0],$aQueue[$iIdx][1],Null,True,True) ; Spawn toast.
+    If @error Then
+        _Log(StringFormat("~!Error@Main:_Toast_ShowMod,%s,%s",@Error,@Extended))
+    EndIf
+    While $hToast_Handle<>0
+        If $bExit Then _Exit()
+        _TimerSleep(125)
+        If $fToast_Close Then ExitLoop
+    WEnd
+    ; Do toast actions.
+    If $fToast_OpenTik Then
+        ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aQueue[$iIdx][2]&"&companyName="&$g_cwm_sCompany)
+    EndIf
+    $fToast_OpenTik=False
+    _Toast_Hide()
+    While $bNotifyLock ; Wait for queue to finish updating
+        _TimerSleep(125)
+    WEnd
+    $aQueue[0][1]+=1
 WEnd
 
+Func test()
+    ConsoleWrite("HeartBeat:"&$iHB&@CRLF)
+    $iHB+=1
+EndFunc
+
 Func idleCheck()
+  If $bAsync Then AdlibUnRegister("idleCheck")
   $iUserIdle=_Timer_GetIdleTime()
   $bUserIdle=$iUserIdle>=300000 ? True : False
   $bWsLock=_isWindowsLocked()
@@ -438,35 +492,64 @@ Func idleCheck()
   If $bUserIdleLast<>$bUserIdle Then
     $bUserIdleLast=$bUserIdle
     If Not $bUserIdle Then
-      _Log("Welcome Back"&@CRLF)
-      _Toast_ShowMod(0,$sTitle,"Welcome Back!                    ",-30)
-      _Toast_Hide()
-      Sleep(5000)
+        _Log("Welcome Back"&@CRLF)
+        _Toast_ShowMod(0,$sTitle,"Welcome Back!                    ",-30)
+        _TimerSleep(5000)
+        _Toast_Hide()
     Else
-      _Log("Workstation Idle."&@CRLF)
+        _Log("Workstation Idle."&@CRLF)
     EndIf
   EndIf
+  If $bAsync Then AdlibRegister("idleCheck",5000)
+EndFunc
+
+Func _TimerSleep($iTimer)
+    Local $hTimer=TimerInit()
+    While TimerDiff($hTimer)<=$iTimer
+        Sleep(1)
+    WEnd
+EndFunc
+
+Func _strTrunc($sStr,$iLen); Split words that are too big
+    ; An attempt to fix lines being too long for _StringSize()
+    ; Need to rework the GUI
+    Return $sStr
 EndFunc
 
 Func tikWatch()
   If $bOffline Then Return
   If $bUserIdle Then Return
   $tMainLoop=TimerInit()
-  AdlibUnRegister("tikWatch")
+  If $bAsync Then
+      AdlibUnRegister("tikWatch")
+  Else
+      $iWatchTimer=TimerInit()
+  EndIf
+  $bNotifyLock=True
   $bBatch=True
   $iTimer=TimerInit()
-  ;_cwmGetTickets($aTiks,0,$g_cwm_sUser)
-  _cwmGetTiksNew($aTiks,0,$g_cwm_sUser)
+  If $bCurl Then
+    _cwmGetTiksNew($aTiks,0,$g_cwm_sUser)
+  Else
+    _cwmGetTickets($aTiks,0,$g_cwm_sUser)
+  EndIf
   If @error Then
     _Log("Error "&@extended&",cannot check for Service tickets.")
-    AdlibRegister("tikWatch",$iWatchInterval)
+    If $bAsync Then
+        AdlibRegister("tikWatch",$iWatchInterval)
+      Else
+          $iWatchTimer=TimerInit()
+    EndIf
     Return
   EndIf
-  ;_cwmGetTickets($aTiks,1,$g_cwm_sUser)
-  _cwmGetTiksNew($aTiks,1,$g_cwm_sUser)
+  If $bCurl Then
+      _cwmGetTiksNew($aTiks,1,$g_cwm_sUser)
+  Else
+      _cwmGetTickets($aTiks,1,$g_cwm_sUser)
+  EndIf
   If @error Then
     _Log("Error "&@extended&",cannot check for Project tickets.")
-    AdlibRegister("tikWatch",$iWatchInterval)
+    If $bAsync Then AdlibRegister("tikWatch",$iWatchInterval)
     Return
   EndIf
   Local $bNotify
@@ -474,18 +557,16 @@ Func tikWatch()
   Local $aNewFields
   Local $aModFields
   $bCommit=False
-  _DebugArrayDisplay($aTiks)
   $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
+    ;Sleep($iUniDelay)
+    If $bExit Then _Exit()
     $bNewTik=False
     $bNotify=False
     $bFieldMod=False
     $sNotify=''
     $tNew=$aTiks[$i][2]
     $iIdxLast=_cwmInArray($aTiksLast,$aTiks[$i][0])
-    If $bExit Then
-      _Exit()
-    EndIf
     If @error Then
       $sTikTitle="[New Ticket]"
       _tikGetFields($tNew,$aNewFields,$sNewFields)
@@ -494,6 +575,7 @@ Func tikWatch()
       Next
     Else
       ; If tik exists and date is not newer,then skip.
+      ;_Log(StringFormat("%s, %s<=%s",$aTiks[$i][0],$aTiks[$i][1],$aTiksLast[$iIdxLast][1]))
       If $aTiks[$i][1]<=$aTiksLast[$iIdxLast][1] Then ContinueLoop
       $sUpdater=_JSON_Get($tNew,'_info.updatedBy')
       If $sUpdater=$g_cwm_sUser Then
@@ -504,6 +586,7 @@ Func tikWatch()
       _tikGetFields($aTiksLast[$i][2],$aOldFields,$sModFields)
       _tikGetFields($tNew,$aModFields,$sModFields)
       For $j=1 To $aModFields[0][0]
+        ;Sleep($iUniDelay)
         If _isFieldNoMod($aModFields[$j][0]) Or StringCompare($aOldFields[$j][1],$aModFields[$j][1])==0 Then
           $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: %s",_getFieldDesc($aModFields[$j][0]),$aModFields[$j][1])&@CRLF
         Else
@@ -517,14 +600,15 @@ Func tikWatch()
     $sName=''
     If $tLastNote.Exists("member") Then $sName=_JSON_Get($tLastNote,"member.name")
     If $tLastNote.Exists("contact") Then $sName=_JSON_Get($tLastNote,"contact.name")
-    $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text"))&@CRLF
+    ;$sNotify&=_strTrunc(StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text")),60)&@CRLF
+    $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text"))
     If $bBatch Then
       $bBatch=False
       _Log("================"&@CRLF)
     EndIf
     _Log($sTikTitle&@CRLF&$sNotify&@CRLF)
     $iQMax=UBound($aQueue,1)
-    ReDim $aQueue[$iQMax+1][UBound($aQueue,2)]
+    ReDim $aQueue[$iQMax+1][$iQueueY]
     $aQueue[$iQMax][0]=$sTikTitle
     $aQueue[$iQMax][1]=$sNotify
     $aQueue[$iQMax][2]=$aTiks[$i][0]
@@ -543,46 +627,34 @@ Func tikWatch()
     $bBatch=True
     _Log("================"&@CRLF)
   EndIf
-  If $bFirstRun Then
-    $bFirstRun=False
-  EndIf
   If $bCommit Then
     ; Update aTikLast
     ;
     ;_DebugArrayDisplay($aTiksLast)
     For $i=1 To $aTiks[0][0]
-      If $bExit Then
-        _Exit()
-      EndIf
-      $iIdxLast=_cwmInArray($aTiksLast,$aTiks[$i][0])
-      If @error Then
-        $iMax=UBound($aTiksLast,1)
-        ReDim $aTiksLast[$iMax+1][6]
-        $iIdxLast=$iMax
-        $aTiksLast[0][0]=$iMax
-      EndIf
-      For $j=0 To UBound($aTiks,2)-1
-        $aTiksLast[$iIdxLast][$j]=$aTiks[$i][$j]
-      Next
+        ;Sleep($iUniDelay)
+        If $bExit Then _Exit()
+        $iIdxLast=_cwmInArray($aTiksLast,$aTiks[$i][0])
+        If @error Then
+            $iMax=UBound($aTiksLast,1)
+            ReDim $aTiksLast[$iMax+1][6]
+            $iIdxLast=$iMax
+            $aTiksLast[0][0]=$iMax
+        EndIf
+        For $j=0 To UBound($aTiks,2)-1
+            $aTiksLast[$iIdxLast][$j]=$aTiks[$i][$j]
+        Next
     Next
-    ;
-    ; Purge Resolved/Closed>7 days.
-    ;
-    If _PurgeOldTiks() Then
-      ;FileDelete($gsStateFile)
-    EndIf
-    ;
-    ; Finally,Serialize $aTiksLast,and save.
-    ;
-    ;_saveState()
+    _PurgeOldTiks();If _PurgeOldTiks() Then FileDelete($gsStateFile); Purge Resolved/Closed>7 days.
+    ;_saveState() ; Finally,Serialize $aTiksLast,and save.
   EndIf
-
-  If $bExit Then
-    _Exit()
-  EndIf
-  $iWatchTimer=TimerInit()
   _Log("MainLoop Took "&TimerDiff($tMainLoop))
-  AdlibRegister("tikWatch",$iWatchInterval)
+  $bNotifyLock=False
+  If $bAsync Then
+      AdlibRegister("tikWatch",$iWatchInterval)
+  Else
+      $iWatchTimer=TimerInit()
+  EndIf
 EndFunc
 
 _Log("DropLoop"&@CRLF)
@@ -699,7 +771,12 @@ Func _cwmAuth()
             ContinueLoop
           EndIf
         EndIf
-        $jRet=_curlGet(StringFormat("https://%s%s/system/info/?fields=version",$g_cwm_sSiteUrl,$g_cwm_sApiUri),True)
+        Local $jRet
+        if $bCurl Then
+          $jRet=_curlGet(StringFormat("https://%s%s/system/info/?fields=version",$g_cwm_sSiteUrl,$g_cwm_sApiUri),True)
+        Else
+          $jRet=_cwmCall("/system/info/?fields=version",True)
+        EndIf
         If @error Then
           If @extended==4 Then
             _GUICtrlStatusBar_SetText($hStatus,"Error: "&_JSON_Get($g_cwm_jLastRet,"code")&","&_JSON_Get($g_cwm_jLastRet,"message"))
@@ -815,8 +892,8 @@ Func _saveState()
   DirCreate($gsDataDir)
   For $i=1 To $aTiksLast[0][0]
     IniWrite($gsStateFile,$aTiksLast[$i][0],"LastMod",$aTiksLast[$i][1])
-    IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik", _Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
-    IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote", _Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
+    IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik",_Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
+    IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote",_Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
     IniWrite($gsStateFile,$aTiksLast[$i][0],"Type",$aTiksLast[$i][4])
   Next
   _Log("Saving State...Done")
@@ -852,6 +929,7 @@ Func _HttpGet($sUrl,$sDomain,$aHeaders=Null)
   If StringInStr($vRet[0],"404 Not Found") Then Return SetError(1,7,0)
   Return SetError(0,0,$vRet[1])
 EndFunc   ;==>_HttpGet
+
 
 Func _curlComOpts(ByRef $hCurl,$bInitial=False)
 	Curl_Easy_Setopt($hCurl,$CURLOPT_USERAGENT,$sTitle)
@@ -893,6 +971,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
     WEnd
     $iCol=UBound($vUrl,2)-1
     For $i=1 To $vUrl[0][0]
+        ;Sleep($iUniDelay)
         ;_Log(StringFormat("CurlURL: '%s'\r\n",$vUrl[$i][$iCol-4]))
         $vUrl[$i][$iCol-3]=Curl_Easy_Init()
         Curl_Easy_Setopt($vUrl[$i][$iCol-3],$CURLOPT_URL,$vUrl[$i][$iCol-4])
@@ -902,11 +981,13 @@ Func _curlGet($vUrl,$bCwmCall=False)
         ;$vUrl[$i][0]=Curl_Easy_Escape(0,$vUrl[$i][0])
     Next
 	Do
+        ;Sleep($iUniDelay)
         $iIdx=0
         $vRet=Null
 		Curl_Multi_Perform($hMulti,$bRun)
         $iQueue=0
         Do
+            ;Sleep($iUniDelay)
             $vMsg=Curl_Multi_Info_Read($hMulti,$iQueue)
             $iMsg=DllStructGetData($vMsg, "msg")
             If $iMsg<>$CURLMSG_DONE Then ContinueLoop
@@ -941,9 +1022,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
             $vUrl[$iIdx][$iCol]=BinaryToString(Curl_Data_Get($hCurl))
             Curl_Easy_Cleanup($hCurl)
             Curl_Data_Cleanup($hCurl)
-            Sleep(62)
         Until $iQueue=0
-        Sleep(62)
 	Until $bRun=0
 	Curl_Multi_Cleanup($hMulti)
     If UBound($vUrl,1)<2 Then
@@ -961,7 +1040,7 @@ EndFunc
 Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     If $g_cwm_sAuthToken='' Then Return SetError(1,1,0)
     While $bOffline
-        Sleep(1000)
+        _TimerSleep(1000)
     WEnd
     Local $sType=($iType=0?"service":"project")
 
@@ -975,12 +1054,14 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     _Log("GetNewTikNfo...")
     ;_DebugArrayDisplay($aTikNfo,$sType)
     For $i=1 To $aTikNfo[0][0]
+        ;Sleep($iUniDelay)
         If $bExit Then _Exit()
         If $iType<>$aTikNfo[$i][4] Then ContinueLoop
         $iMax=UBound($aPastIds,1)
         ReDim $aPastIds[$iMax+1]
         $aPastIds[$iMax]=StringFormat($sPastComUrl,$aTikNfo[$i][0])
         $aPastIds[0]=$iMax
+        ;Sleep($iUniDelay)
     Next
     $iMax=UBound($aPastIds,1)
     ReDim $aPastIds[$iMax+1]
@@ -997,6 +1078,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     If IsArray($aPastIds) Then
         $aPastIds[0][0]-=1
         For $i=1 To $aPastIds[0][0]
+            ;Sleep($iUniDelay)
             $jRet=_JSON_Parse($aPastIds[$i][4])
             If IsArray($jRet) Then $jRet=$jRet[0]
             $aPastIds[$i][0]=$jRet
@@ -1026,6 +1108,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     _Log("GetTikDetail...")
     Local $aFetch[][4]=[[0,'','']]
     For $t In $jRet
+        ;Sleep($iUniDelay)
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$t)
         If Not $vRet Then ContinueLoop
@@ -1042,8 +1125,10 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         $aFetch[$iMax][1]=$vRet
         $aFetch[$iMax][2]=1; isNote
         $aFetch[$iMax][3]=StringFormat($sFetchNoteUrl,$vRet)
+
     Next
     For $i=1 To $aPastIds[0][0]
+        ;Sleep($iUniDelay)
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$aPastIds[$i][0])
         If Not $vRet Then ContinueLoop
@@ -1061,12 +1146,14 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         $aFetch[$iMax][2]=1; isNote
         $aFetch[$iMax][3]=StringFormat($sFetchNoteUrl,$vRet)
         $aFetch[0][0]=$iMax
+
     Next
     Local $aTiksNew=_curlGet($aFetch,1)
     _Log("GetTikDetail...done")
     ;_DebugArrayDisplay($aTiksNew)
     $iCol=UBound($aTiksNew,2)-1
     For $i=1 To $aTiksNew[0][0]
+        ;Sleep($iUniDelay)
         $aTiksNew[$i][$iCol]=_JSON_Parse($aTiksNew[$i][$iCol])
         If IsArray($aTiksNew[$i][$iCol]) Then $aTiksNew[$i][$iCol]=($aTiksNew[$i][$iCol])[0]
         $iIdx=$aTiksNew[$i][0]
@@ -1075,16 +1162,22 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
             ContinueLoop
         EndIf
         If $aFetch[$i][2] Then
-            $aTikNfo[$iIdx][2]=$aTiksNew[$i][$iCol]
-        Else
             $aTikNfo[$iIdx][3]=$aTiksNew[$i][$iCol]
+        Else
+            $aTikNfo[$iIdx][2]=$aTiksNew[$i][$iCol]
         EndIf
+
     Next
     _Log("_cwmGetTickets took "&TimerDiff($iTimer))
 EndFunc
 
 Func _cwmInit()
-  $sCI=_CurlGet("https://na.myconnectwise.net/login/companyinfo/"&$g_cwm_sCompany)
+  Local $sCI
+  if $bCurl Then
+    $sCI=_CurlGet("https://na.myconnectwise.net/login/companyinfo/"&$g_cwm_sCompany)
+  Else
+    $sCI=_HttpGet("/login/companyinfo/"&$g_cwm_sCompany,"na.myconnectwise.net")
+  EndIf
   If @error Then Return SetError(1,(@extended*10)+1,0)
   $g_cwm_sCI=$sCI
   $jCI=_JSON_Parse($sCI)
@@ -1097,18 +1190,20 @@ Func _cwmInit()
   If @error Then Return SetError(1,5,0)
   $g_cwm_sCodeBase=$sCodeBase
   $g_cwm_sSiteUrl=$sSiteUrl
-  $g_cwm_sApiUri=$sCodeBase&"apis/3.0"
+  if $bCurl Then
+    $g_cwm_sApiUri=$sCodeBase&"apis/3.0"
+  Else
+    $g_cwm_sApiUri='/'&$sCodeBase&"apis/3.0"
+  EndIf
   $g_cwm_sUrlComm=StringFormat("https://%s/%sapis/3.0",$sSiteUrl,$sCodeBase)
   $sPubKey=_CryptUnprotectData(_Base64Decode($g_cwm_sPubKey)) ;$g_cwm_sPubKey;
   $sPrivKey=_CryptUnprotectData(_Base64Decode($g_cwm_sPrivKey)) ;$g_cwm_sPrivKey;
   $g_cwm_sAuthToken=_Base64Encode($sCompany&'+'&$sPubKey&':'&$sPrivKey)
   $g_cwm_sClientId=_CryptUnprotectData(_Base64Decode($g_cwm_sClientId))
-  ;ConsoleWrite($g_cwm_sAuthToken&@CRLF)
-  ;ConsoleWrite($g_cwm_sClientId&@CRLF)
-  ;_Exit()
 EndFunc   ;==>_cwmInit
 
 Func _cwmProcTikNew(ByRef $aTikNfo,$iType,$t)
+  ;Sleep($iUniDelay)
   Local $sType=($iType=0?"service":"project")
   ;_Log(_JSON_Generate($t))
   $vTikId=_JSON_Get($t,"id")
@@ -1136,9 +1231,173 @@ Func _cwmProcTikNew(ByRef $aTikNfo,$iType,$t)
   Else
     If ($aTikNfo[$iIdx][1])=$vTikLastUpdate Then Return SetError(0,@Extended,0)  ;ContinueLoop
     _Log('+Ticket Updated: '&$vTikId&"("&($aTikNfo[$iIdx][1])&','&$vTikLastUpdate&")"&@CRLF)
+    $aTikNfo[$iIdx][1]=$vTikLastUpdate
+    ;_Log(_JSON_Generate($aTikNfo[$iIdx][2]))
+    ;_Log(_JSON_Generate($aTikNfo[$iIdx][3]))
   EndIf
   Return SetError(0,$iIdx,$vTikId)
 EndFunc
+
+Func _cwmCall($sCall,$bApi=False)
+  If $g_cwm_sAuthToken=='' Then Return SetError(1,1,0)
+  While doOfflineCheck()
+    _TimerSleep(1000)
+  WEnd
+  If StringLen($sCall)>=1000 Then ; 2000 is the API limit.
+    _Log("Warn: _cwmGetTickets $sCall>=1000")
+  EndIf
+  $iTimerA=TimerInit()
+  Local $sRet,$jRet,$aHeader[][2]=[ _
+      [2,''], _
+      ["Authorization","Basic "&$g_cwm_sAuthToken], _
+      ["clientid",$g_cwm_sClientId] _
+  ]
+  $iTimerB=TimerInit()
+  $sRet=_HttpGet($g_cwm_sApiUri&$sCall,$g_cwm_sSiteUrl,$aHeader)
+  If @error Then Return SetError(1,(@extended*10)+2,0)
+  ;_Log("_cwmCall._HttpGet took "&TimerDiff($iTimerB)&@CRLF)
+  $iTimerC=TimerInit()
+  $jRet=_JSON_Parse($sRet)
+  If @error Then Return SetError(1,3,$sRet)
+  If IsObj($jRet) Then
+    If $jRet.Exists("code") Then
+      _Log($sRet&@CRLF)
+      $g_cwm_jLastRet=$jRet
+      If $bApi Then Return SetError(1,4,0)
+      _Log("The Server Returned an Error..."&@LF&@LF&"Code:    "&@TAB&_JSON_Get($jRet,"code")&@LF&"Message: "&_JSON_Get($jRet,"message"))
+      Return SetError(1,4,0)
+    EndIf
+  EndIf
+  ;_Log("_cwmCall._JSON_Parse took "&TimerDiff($iTimerC)&@CRLF)
+  ;_Log("_cwmCall took "&TimerDiff($iTimerA)&@CRLF)
+  Return SetError(0,0,$jRet)
+EndFunc   ;==>_cwmCall
+
+Func _cwmGetTicketList(ByRef $aTik,$sType)
+  Local $jTik,$sQuery=''
+  For $i=1 To $aTik[0][0]
+    If $sType<>$aTik[$i][1] Then ContinueLoop
+    $sQuery&="id="&$aTik[$i][0]
+    If $i<$aTik[0][0] Then $sQuery&=" Or "
+  Next
+  If StringRight($sQuery,4)==" Or " Then $sQuery=StringTrimRight($sQuery,4)
+  ;_Log($sQuery&@CRLF)
+  $jTik=_cwmCall("/"&$sType&"/tickets?conditions="&$sQuery&"&pageSize=1000")
+  If @error Then Return SetError(1,(@extended*10)+1,0)
+  ;_Log(_JSON_Generate($jTik)&@CRLF)
+  Return SetError(0,0,$jTik)
+EndFunc   ;==>_cwmGetTicketList
+
+Func _cwmGetTikNfo($iType,$sId)
+  Local $sType=$iType==0 ? "service" : "project"
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id,_info/lastUpdated&pageSize=1')
+  If @error Then Return SetError(1,(@extended*10+1),0)
+  If IsArray($jTik) Then $jTik=$jTik[0]
+  Return SetError(0,0,$jTik)
+EndFunc   ;==>_cwmGetTikNfo
+
+Func _cwmGetTiks(ByRef $aTikNfo,$iType,$sUser)
+  Local $sType=$iType==0 ? "service" : "project"
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"'&'&fields=id,_info/lastUpdated&pageSize=1000')
+  If @error Then Return SetError(1,(@extended*10+1),0)
+EndFunc   ;==>_cwmGetTiks
+
+Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
+  Local $sType=$iType==0 ? "service" : "project"
+  ;_Log(_JSON_Generate($t))
+  $vTikId=_JSON_Get($t,"id")
+  If @error Then
+    _Log("Failed to get ticket id"&@CRLF)
+    _Log(_JSON_Generate($t)&@CRLF)
+    If @error Then Return    ; SetError(1,2,$t)
+  EndIf
+  $vTikLastUpdate=_JSON_Get($t,"_info.lastUpdated")
+  If @error Then
+    _Log("Failed to get ticket _info.lastUpdated"&@CRLF)
+    _Log(_JSON_Generate($t)&@CRLF)
+    If @error Then Return    ; SetError(1,2,$t)
+  EndIf
+  $vTikLastUpdate=_cwmConvDate2Sec($vTikLastUpdate)
+  $iIdx=_cwmInArray($aTiks,$vTikId)
+  If @error Then
+    $iIdx=UBound($aTikNfo,1)
+    ReDim $aTikNfo[$iIdx+1][6]
+    _Log("New Ticket:"&$vTikId&@CRLF)
+    $aTikNfo[$iIdx][0]=$vTikId
+    $aTikNfo[$iIdx][1]=$vTikLastUpdate
+    $aTikNfo[$iIdx][4]=$iType
+    $aTikNfo[0][0]=$iIdx
+  Else
+    If ($aTikNfo[$iIdx][1])==$vTikLastUpdate Then Return  ;ContinueLoop
+    _Log('+Ticket Updated: '&$vTikId&"("&($aTikNfo[$iIdx][1])&','&$vTikLastUpdate&")"&@CRLF)
+  EndIf
+  _Log("Fetch Ticket:"&$vTikId&@CRLF)
+  ;Sleep(50)
+  $jFetch=_cwmCall('/'&$sType&"/tickets?conditions=id="&$vTikId&"&pageSize=1")
+  If @error Then
+    Return SetError(1,(@extended*10+3),0)
+  Else
+    If IsArray($jFetch) Then
+      $aTikNfo[$iIdx][2]=$jFetch[0]
+    Else
+      $aTikNfo[$iIdx][2]=$jFetch
+    EndIf
+  EndIf
+  ;ConsoleWrite(_JSON_Generate($jFetch)&@CRLF)
+  _Log("Get Ticket Notes:"&$vTikId&@CRLF)
+  ;Sleep(50)
+  $jTikNotes=_cwmCall('/'&$sType&"/tickets/"&$vTikId&"/allNotes?orderBy=_info/sortByDate desc&pageSize=1")
+  If @error Then
+    _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
+  Else
+    If IsArray($jTikNotes) Then
+      If UBound($jTikNotes,1)<>1 Then
+        _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
+        _ArrayDisplay($jTikNotes)
+      EndIf
+      $aTikNfo[$iIdx][3]=$jTikNotes[0]
+    Else
+      $aTikNfo[$iIdx][3]=$jTikNotes
+    EndIf
+  EndIf
+  $aTikNfo[$iIdx][1]=$vTikLastUpdate
+  ;Sleep(50)
+EndFunc   ;==>_cwmProcTik
+
+Func _cwmGetTickets(ByRef $aTikNfo,$iType,$sUser)
+  Local $iTimer=TimerInit()
+  Local $sType=$iType==0 ? "service" : "project"
+  Local $aPastIds[]=[0]
+  For $i=1 To $aTikNfo[0][0]
+    If $iType<>$aTikNfo[$i][4] Then ContinueLoop
+    $iMax=UBound($aPastIds,1)
+    ReDim $aPastIds[$iMax+1]
+    $aPastIds[$iMax]=_cwmGetTikNfo($iType,$aTikNfo[$i][0])
+    If @error Then
+      _Log("_cwmGetTickets took "&TimerDiff($iTimer))
+      Return SetError(1,(@extended*10+1),0)
+    EndIf
+    $aPastIds[0]=$iMax
+  Next
+  $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id,_info/lastUpdated&pageSize=1000')
+  If @error Then
+    _Log("_cwmGetTickets took "&TimerDiff($iTimer))
+    Return SetError(1,(@extended*10+2),0)
+  EndIf
+  For $t In $jTik
+    If $bExit Then
+      _Exit()
+    EndIf
+    _cwmProcTik($aTikNfo,$iType,$t)
+  Next
+  For $i=1 To $aPastIds[0]
+    If $bExit Then
+      _Exit()
+    EndIf
+    _cwmProcTik($aTikNfo,$iType,$aPastIds[$i])
+  Next
+  _Log("_cwmGetTickets took "&TimerDiff($iTimer))
+EndFunc   ;==>_cwmGetTickets
 
 Func _cwmConvDate2Sec($sDate)
   If Not _DateIsValid($sDate) Then Return SetError(1,0,0)
@@ -1220,12 +1479,16 @@ Func _TrayEvent()
 EndFunc   ;==>_TrayEvent
 
 Func _Exit()
-  $bExit=True
-  _Toast_Set(0,-1,-1,-1,-1,-1,"Consolas",125,125)
-  $aRet=_Toast_ShowMod(0,$sTitle,"Exiting...                        ",-5)
-  _Toast_Hide()
-  _Log("_Exit()")
-  Exit
+    $bExit=True
+    AdlibUnRegister("doOfflineCheck")
+    AdlibUnRegister("idleCheck")
+    AdlibUnRegister("tikWatch")
+    _Toast_Set(0,-1,-1,-1,-1,-1,"Consolas",125,125)
+    $aRet=_Toast_ShowMod(0,$sTitle,"Exiting...                        ",-5)
+    Sleep(2000)
+    _Toast_Hide()
+    _Log("_Exit()")
+    Exit
 EndFunc   ;==>_Exit
 
 Func _getIdealSrv($sDom)
@@ -1260,10 +1523,8 @@ Func _getIdealSrv($sDom)
 EndFunc   ;==>_getIdealSrv
 
 Func doOfflineCheck()
-  If $bExit Then
-    While Sleep(1000)
-    WEnd
-  EndIf
+  If $bExit Then Return
+  If $bAsync Then AdlibUnRegister("doOfflineCheck")
   $bOffline=False
   $iOffline=0
   While $iOffline<$iOfflineThresh
@@ -1286,13 +1547,16 @@ Func doOfflineCheck()
     If $bOffline Then
       _Log("We're Offline")
       _Toast_ShowMod(0,$sTitle,"We're Offline                    ",-5)
+      _TimerSleep(2000)
       _Toast_Hide()
     Else
       _Log("We're Online")
       _Toast_ShowMod(0,$sTitle,"We're back Online                    ",-5)
+      _TimerSleep(2000)
       _Toast_Hide()
     EndIf
   EndIf
+  If $bAsync Then AdlibRegister("doOfflineCheck",500)
   Return $bOffline
 EndFunc   ;==>doOfflineCheck
 
@@ -1331,7 +1595,7 @@ Func _PurgeOldTiks()
   $iOld=$aTiksLast[0][0]
   Dim $aKeepTiks[1][$iyMax]
   $aKeepTiks[0][0]=0
-  $iLastWeek=_DateDiff('s',$g_cwm_sEpoch, _DateAdd('D',-7, _NowCalc()))
+  $iLastWeek=_DateDiff('s',$g_cwm_sEpoch,_DateAdd('D',-7,_NowCalc()))
   For $i=1 To $aTiksLast[0][0]
     $jTik=$aTiksLast[$i][2]
     ;_Log($aTiksLast[$i][0]&':'&_JSON_Get($jTik,"closedFlag")&@CRLF)
@@ -1456,6 +1720,7 @@ EndFunc   ;==>_isFieldNoMod
 
 ; Author ........: Melba23,based on some original code by GioVit for the Toast
 ; Modified By ...: BiatuAutMiahn
+;$aRet=_Toast_ShowMod(0,$aQueue[$iIdx][0],$aQueue[$iIdx][1],Null,True,True) ; Spawn toast.
 Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=False,$fRaw=False)
   $bInfinite=False
   If $iDelay=Null Then
@@ -1528,10 +1793,14 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   Local $iMax_Label_Width=$iToast_Width_max-20-$iIcon_Reduction
   If $fRaw=True Then $iMax_Label_Width=0
   ; Get message label size
-  Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width)
+  Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
   If @error Then
-    $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
-    Return SetError(3,0,-1)
+    If @error=3 Then
+        $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
+        If @error Then Return SetError((@Error*10)+3,(@Extended*10)+0,-1)
+    Else
+        Return SetError((@Error*10)+3,(@Extended*10)+0,-1)
+    EndIf
   EndIf
   ; Reset text to match rectangle
   $sMessage=$aLabel_Pos[0]
@@ -1544,7 +1813,7 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   Local $iToast_Width=$iLabelwidth+20+$iIcon_Reduction
   ; Check if Toast will fit on screen
   If $iToast_Width>@DesktopWidth-20 Then
-    $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
+    ;$nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
     Return SetError(4,0,-1)
   EndIf
   ; Increase if below min size
@@ -1576,7 +1845,7 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   ;
   $hToast_Handle=GUICreate("",$iToast_Width,$iToast_Height,$aToast_Data[0],$aToast_Data[1]-2,$WS_POPUPWINDOW,BitOR($WS_EX_TOOLWINDOW,$WS_EX_TOPMOST))
   If @error Then
-    $nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
+    ;$nOldOpt=Opt('GUIOnEventMode',$nOldOpt)
     Return SetError(1,0,-1)
   EndIf
   GUISetFont($iToast_Font_Size,Default,Default,$sToast_Font_Name)
@@ -1672,15 +1941,14 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
     Local $sBtnB="Dismiss All"
     Local $aBtn_PosB=_StringSize($sBtnB,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iToast_Width/$iBtnMax)
     $hToast_DismissAll=GuiFlatButton_Create($sBtnB,$iBtnLeft+($iBtnWidth*2),$iToast_Height-$iTitle_Height+1,$iBtnWidth-2,$iTitle_Height-2)
-    GUICtrlSetFont($hToast_Close_X,$iToast_Font_Size,Default,Default,"Consolas")
+    GUICtrlSetFont($hToast_DismissAll,$iToast_Font_Size,Default,Default,"Consolas")
     GuiFlatButton_SetState($hToast_OpenTik,$GUI_SHOW)
     GuiFlatButton_SetState($hToast_Close_X,$GUI_SHOW)
     GuiFlatButton_SetState($hToast_DismissAll,$GUI_SHOW)
-    GUIRegisterMsg($hToast_OpenTik,"toastOpenTik")
-    GUIRegisterMsg($hToast_Close_X,"toastDismiss")
-    GUIRegisterMsg($hToast_DismissAll,"toastDismissAll")
+    GUICtrlSetOnEvent($hToast_OpenTik,"toastOpenTik")
+    GUICtrlSetOnEvent($hToast_Close_X,"toastDismiss")
+    GUICtrlSetOnEvent($hToast_DismissAll,"toastDismissAll")
   EndIf
-  GUIRegisterMsg(0x0021,"__Toast_WM_EVENTSMod") ;$WM_MOUSEACTIVATE
   ; Slide Toast Slice into view from behind systray and activate
   DllCall("user32.dll","int","AnimateWindow","hwnd",$hToast_Handle,"int",$iToast_Time_Out,"long",$aToast_Data[2])
   ; Activate Toast without stealing focus
@@ -1691,20 +1959,20 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
 EndFunc   ;==>_Toast_ShowMod
 
 Func toastOpenTik()
-    $fToast_Close=True
-    $fToast_OpenTik=True
-    __toastClose()
+  $fToast_Close=True
+  $fToast_OpenTik=True
+  ;__toastClose()
 EndFunc
 
 Func toastDismiss()
-    $fToast_Close=True
-    __toastClose()
+  $fToast_Close=True
+  ;__toastClose()
 EndFunc
 
 Func toastDismissAll()
-    $fToast_Close=True
-    $fToast_bDismissAll=True
-    __toastClose()
+  $fToast_Close=True
+  $fToast_bDismissAll=True
+  ;__toastClose()
 EndFunc
 
 Func __toastClose()
@@ -1758,200 +2026,3 @@ Func __Toast_WM_EVENTSMod($hWnd,$Msg,$wParam,$lParam)
   EndIf
   Return 'GUI_RUNDEFMSG'
 EndFunc   ;==>__Toast_WM_EVENTSMod
-
-;~ Func _cwmCall($sCall,$bApi=False)
-;~   If $g_cwm_sAuthToken=='' Then Return SetError(1,1,0)
-;~   While $bOffline
-;~     Sleep(1000)
-;~   WEnd
-;~   If StringLen($sCall)>=1000 Then ; 2000 is the API limit.
-;~     _Log("Warn: _cwmGetTickets $sCall>=1000")
-;~   EndIf
-;~   $iTimerA=TimerInit()
-;~   Local $sRet,$jRet,$aHeader[][2]=[ _
-;~       [2,''], _
-;~       ["Authorization","Basic "&$g_cwm_sAuthToken], _
-;~       ["clientid",$g_cwm_sClientId] _
-;~   ]
-;~   $iTimerB=TimerInit()
-;~   $sRet=_CurlGet(StringFormat("https://%s%s%s",$g_cwm_sSiteUrl,$g_cwm_sApiUri,$sCall),$aHeader)
-;~   If @error Then Return SetError(1,(@extended*10)+2,0)
-;~   ;_Log("_cwmCall._HttpGet took "&TimerDiff($iTimerB)&@CRLF)
-;~   $iTimerC=TimerInit()
-;~   $jRet=_JSON_Parse($sRet)
-;~   If @error Then Return SetError(1,3,$sRet)
-;~   If IsObj($jRet) Then
-;~     If $jRet.Exists("code") Then
-;~       _Log($sRet&@CRLF)
-;~       $g_cwm_jLastRet=$jRet
-;~       If $bApi Then Return SetError(1,4,0)
-;~       _Log("The Server Returned an Error..."&@LF&@LF&"Code:    "&@TAB&_JSON_Get($jRet,"code")&@LF&"Message: "&_JSON_Get($jRet,"message"))
-;~       Return SetError(1,4,0)
-;~     EndIf
-;~   EndIf
-;~   ;_Log("_cwmCall._JSON_Parse took "&TimerDiff($iTimerC)&@CRLF)
-;~   ;_Log("_cwmCall took "&TimerDiff($iTimerA)&@CRLF)
-;~   Return SetError(0,0,$jRet)
-;~ EndFunc   ;==>_cwmCall
-
-;~ Func _cwmGetTicketList(ByRef $aTik,$sType)
-;~   Local $jTik,$sQuery=''
-;~   For $i=1 To $aTik[0][0]
-;~     If $sType<>$aTik[$i][1] Then ContinueLoop
-;~     $sQuery&="id="&$aTik[$i][0]
-;~     If $i<$aTik[0][0] Then $sQuery&=" Or "
-;~   Next
-;~   If StringRight($sQuery,4)==" Or " Then $sQuery=StringTrimRight($sQuery,4)
-;~   ;_Log($sQuery&@CRLF)
-;~   $jTik=_cwmCall("/"&$sType&"/tickets?conditions="&$sQuery&"&pageSize=1000")
-;~   If @error Then Return SetError(1,(@extended*10)+1,0)
-;~   ;_Log(_JSON_Generate($jTik)&@CRLF)
-;~   Return SetError(0,0,$jTik)
-;~ EndFunc   ;==>_cwmGetTicketList
-
-;~ Func _cwmGetTikNfo($iType,$sId)
-;~   Local $sType=$iType==0 ? "service" : "project"
-;~   $jTik=_cwmCall('/'&$sType&'/tickets?conditions=id='&$sId&'&fields=id,_info/lastUpdated&pageSize=1000')
-;~   If @error Then Return SetError(1,(@extended*10+1),0)
-;~   If IsArray($jTik) Then $jTik=$jTik[0]
-;~   Return SetError(0,0,$jTik)
-;~ EndFunc   ;==>_cwmGetTikNfo
-
-;~ Func _cwmGetTiks(ByRef $aTikNfo,$iType,$sUser)
-;~   Local $sType=$iType==0 ? "service" : "project"
-;~   $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"'&'&fields=id,_info/lastUpdated&pageSize=1000')
-;~   If @error Then Return SetError(1,(@extended*10+1),0)
-;~ EndFunc   ;==>_cwmGetTiks
-
-;~ Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
-;~   Local $sType=$iType==0 ? "service" : "project"
-;~   ;_Log(_JSON_Generate($t))
-;~   $vTikId=_JSON_Get($t,"id")
-;~   If @error Then
-;~     _Log("Failed to get ticket id"&@CRLF)
-;~     _Log(_JSON_Generate($t)&@CRLF)
-;~     If @error Then Return    ; SetError(1,2,$t)
-;~   EndIf
-;~   $vTikLastUpdate=_JSON_Get($t,"_info.lastUpdated")
-;~   If @error Then
-;~     _Log("Failed to get ticket _info.lastUpdated"&@CRLF)
-;~     _Log(_JSON_Generate($t)&@CRLF)
-;~     If @error Then Return    ; SetError(1,2,$t)
-;~   EndIf
-;~   $vTikLastUpdate=_cwmConvDate2Sec($vTikLastUpdate)
-;~   $iIdx=_cwmInArray($aTiks,$vTikId)
-;~   If @error Then
-;~     $iIdx=UBound($aTikNfo,1)
-;~     ReDim $aTikNfo[$iIdx+1][6]
-;~     _Log("New Ticket:"&$vTikId&@CRLF)
-;~     $aTikNfo[$iIdx][0]=$vTikId
-;~     $aTikNfo[$iIdx][1]=$vTikLastUpdate
-;~     $aTikNfo[$iIdx][4]=$iType
-;~     $aTikNfo[0][0]=$iIdx
-;~   Else
-;~     If ($aTikNfo[$iIdx][1])==$vTikLastUpdate Then Return  ;ContinueLoop
-;~     _Log('+Ticket Updated: '&$vTikId&"("&($aTikNfo[$iIdx][1])&','&$vTikLastUpdate&")"&@CRLF)
-;~   EndIf
-;~   _Log("Fetch Ticket:"&$vTikId&@CRLF)
-;~   ;Sleep(50)
-;~   $jFetch=_cwmCall('/'&$sType&"/tickets?conditions=id="&$vTikId&"&pageSize=1000")
-;~   If @error Then
-;~     Return SetError(1,(@extended*10+3),0)
-;~   Else
-;~     If IsArray($jFetch) Then
-;~       $aTikNfo[$iIdx][2]=$jFetch[0]
-;~     Else
-;~       $aTikNfo[$iIdx][2]=$jFetch
-;~     EndIf
-;~   EndIf
-;~   ;ConsoleWrite(_JSON_Generate($jFetch)&@CRLF)
-;~   _Log("Get Ticket Notes:"&$vTikId&@CRLF)
-;~   ;Sleep(50)
-;~   $jTikNotes=_cwmCall('/'&$sType&"/tickets/"&$vTikId&"/allNotes?orderBy=_info/sortByDate desc&pageSize=1000")
-;~   If @error Then
-;~     _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
-;~   Else
-;~     If IsArray($jTikNotes) Then
-;~       $aTikNfo[$iIdx][3]=$jTikNotes[0]
-;~     Else
-;~       $aTikNfo[$iIdx][3]=$jTikNotes
-;~     EndIf
-;~   EndIf
-;~   $aTikNfo[$iIdx][1]=$vTikLastUpdate
-;~   ;Sleep(50)
-;~ EndFunc   ;==>_cwmProcTik
-
-;~ Func _cwmGetTicketsCurl(ByRef $aTikNfo,$iType,$sUser)
-;~   Local $iTimer=TimerInit()
-;~   Local $sType=$iType==0 ? "service" : "project"
-;~   Local $aPastIds[]=[0]
-;~   For $i=1 To $aTikNfo[0][0]
-;~     If $iType<>$aTikNfo[$i][4] Then ContinueLoop
-;~     $iMax=UBound($aPastIds,1)
-;~     ReDim $aPastIds[$iMax+1]
-;~     $aPastIds[$iMax]=_cwmGetTikNfo($iType,$aTikNfo[$i][0])
-;~     If @error Then
-;~       _Log("_cwmGetTickets took "&TimerDiff($iTimer))
-;~       Return SetError(1,(@extended*10+1),0)
-;~     EndIf
-;~     $aPastIds[0]=$iMax
-;~   Next
-;~   $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id,_info/lastUpdated&pageSize=1000')
-;~   If @error Then
-;~     _Log("_cwmGetTickets took "&TimerDiff($iTimer))
-;~     Return SetError(1,(@extended*10+2),0)
-;~   EndIf
-;~   ; PreProc, Build Array of tiks.
-;~   Dim $aTiksGet[]
-;~   Local $iMax
-;~   For $t In $jTik
-;~     If $bExit Then _Exit()
-;~     $iMax=UBound($aTiksGet,1)
-;~     ReDim $aTiksGet[$iMax+1]
-;~     $aTiksGet[$iMax]=_JSON_Get($t,'id')
-;~   Next
-;~   $aTiksGet=_CurlGetMulti($aTiksGet)
-;~     ;_cwmProcTik($aTikNfo,$iType,$t)
-;~   For $i=1 To $aPastIds[0]
-;~     If $bExit Then
-;~       _Exit()
-;~     EndIf
-;~     _cwmProcTik($aTikNfo,$iType,$aPastIds[$i])
-;~   Next
-;~   _Log("_cwmGetTickets took "&TimerDiff($iTimer))
-;~ EndFunc   ;==>_cwmGetTicketsCurl
-
-;~ Func _cwmGetTickets(ByRef $aTikNfo,$iType,$sUser)
-;~   Local $iTimer=TimerInit()
-;~   Local $sType=$iType==0 ? "service" : "project"
-;~   Local $aPastIds[]=[0]
-;~   For $i=1 To $aTikNfo[0][0]
-;~     If $iType<>$aTikNfo[$i][4] Then ContinueLoop
-;~     $iMax=UBound($aPastIds,1)
-;~     ReDim $aPastIds[$iMax+1]
-;~     $aPastIds[$iMax]=_cwmGetTikNfo($iType,$aTikNfo[$i][0])
-;~     If @error Then
-;~       _Log("_cwmGetTickets took "&TimerDiff($iTimer))
-;~       Return SetError(1,(@extended*10+1),0)
-;~     EndIf
-;~     $aPastIds[0]=$iMax
-;~   Next
-;~   $jTik=_cwmCall('/'&$sType&'/tickets?conditions=closedFlag=False and resources contains "'&$sUser&'" or closedFlag=False and owner/identifier="'&$sUser&'"&fields=id,_info/lastUpdated&pageSize=1000')
-;~   If @error Then
-;~     _Log("_cwmGetTickets took "&TimerDiff($iTimer))
-;~     Return SetError(1,(@extended*10+2),0)
-;~   EndIf
-;~   For $t In $jTik
-;~     If $bExit Then
-;~       _Exit()
-;~     EndIf
-;~     _cwmProcTik($aTikNfo,$iType,$t)
-;~   Next
-;~   For $i=1 To $aPastIds[0]
-;~     If $bExit Then
-;~       _Exit()
-;~     EndIf
-;~     _cwmProcTik($aTikNfo,$iType,$aPastIds[$i])
-;~   Next
-;~   _Log("_cwmGetTickets took "&TimerDiff($iTimer))
-;~ EndFunc   ;==>_cwmGetTickets
