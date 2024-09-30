@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
 #AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1015
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1017
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Res_Language=1033
@@ -71,7 +71,7 @@ Opt("TrayIconDebug", 1)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1015"
+Global Const $VERSION = "1.1.0.1017"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -306,6 +306,7 @@ Local $vTikId,$vTikLastUpdate
 Global $iUserIdle,$bUserIdle,$bUserIdleLast,$bWsLock,$bWsLockLast
 Global $fToast_OpenTik=False,$hToast_OpenTik
 Global $fToast_bDismissAll=False,$hToast_DismissAll
+Global $iToast_TikId
 Global $bAsync=1;False
 
 ;Global $aQueue[][3]=[[0,0,0]
@@ -441,6 +442,7 @@ Func tikNotify()
         ;If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
         Return
     EndIf
+
     $iIdx=$aQueue[0][1]
     $iIdxMax=$aQueue[0][0]
     If $iIdx=$iIdxMax Or $bFirstRun Then ; If we're caught up or during first run, clear queue and continue to wait.
@@ -449,7 +451,7 @@ Func tikNotify()
         $aQueue[0][0]=0
         $aQueue[0][1]=1
         $fToast_bDismissAll=False
-        _saveState() ; Finally, Serialize $aTiksLast, and save.
+        ;_saveState() ; Finally, Serialize $aTiksLast, and save.
         Return
     EndIf
     If $fToast_bDismissAll Then ; If user invokes DismissAll, then we ignore this batch of updates.
@@ -458,6 +460,7 @@ Func tikNotify()
     EndIf
     If $hToast_Handle<>0 Then Return
     $aRet=_Toast_ShowMod(0,$aQueue[$iIdx][0],$aQueue[$iIdx][1],Null,True,True) ; Spawn toast.
+    $iToast_TikId=$aQueue[$iIdx][2]
     If @error Then
         _Log(StringFormat("~!Error@Main:_Toast_ShowMod,%s,%s",@Error,@Extended))
     EndIf
@@ -468,7 +471,8 @@ Func waitNotify()
   If Not $fToast_Close Then Return
   AdlibUnRegister("waitNotify")
   If $fToast_OpenTik Then
-      ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$aQueue[$iIdx][2]&"&companyName="&$g_cwm_sCompany)
+      ;_DebugArrayDisplay($aQueue)
+      ShellExecute("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid="&$iToast_TikId&"&companyName="&$g_cwm_sCompany)
   EndIf
   $fToast_OpenTik=False
   _Toast_Hide()
