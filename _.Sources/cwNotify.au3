@@ -6,7 +6,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1010
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1012
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -74,7 +74,7 @@ Opt("TrayMenuMode",3)
 Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1010"
+Global Const $VERSION = "1.1.0.1012"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -462,7 +462,8 @@ While Sleep(125)
   Local $aOldFields
   Local $aNewFields
   Local $aModFields
-  $bCommit=False
+  Global $bCommit=False
+
   ;_DebugArrayDisplay($aTiks)
   $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
@@ -485,7 +486,7 @@ While Sleep(125)
       ; If tik exists and date is not newer,then skip.
       If $aTiks[$i][1]<=$aTiksLast[$iIdxLast][1] Then ContinueLoop
       $sUpdater=_JSON_Get($tNew,'_info.updatedBy')
-      If $sUpdater<>$g_cwm_sUser Then ; Skip Updates by ourselves.
+      If $sUpdater=$g_cwm_sUser Then ; Skip Updates by ourselves.
         _Log("Skipped Tik Mod By: "&$sUpdater)
         $bCommit=True
         ContinueLoop
