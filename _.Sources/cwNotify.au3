@@ -6,7 +6,7 @@
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_ProductName=
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1012
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1015
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Run_After=echo %fileversion%>..\VERSION.rc
@@ -74,7 +74,7 @@ Opt("TrayMenuMode",3)
 Global Const $giLineMain=@ScriptLineNumber
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1012"
+Global Const $VERSION = "1.1.0.1015"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -973,9 +973,9 @@ Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
     If IsArray($jTikNotes) Then
       If UBound($jTikNotes,1)<>1 Then
         _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
-        _ArrayDisplay($jTikNotes)
+      Else
+        $aTikNfo[$iIdx][3]=$jTikNotes[0]
       EndIf
-      $aTikNfo[$iIdx][3]=$jTikNotes[0]
     Else
       $aTikNfo[$iIdx][3]=$jTikNotes
     EndIf
