@@ -596,6 +596,7 @@ Func tikWatch()
       $sUpdater=_JSON_Get($tNew,'_info.updatedBy')
       If $sUpdater=$g_cwm_sUser Then
         _Log("Skipped Tik Mod By: "&$sUpdater)
+        $bCommit=True
         ContinueLoop         ; Skip Updates by ourselves.
       EndIf
       $sTikTitle="[Ticket Updated]"
