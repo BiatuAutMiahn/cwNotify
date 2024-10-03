@@ -1823,8 +1823,12 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
   If @error Then
     If @error=3 Then
-        $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,0,$hToast_Handle)
-        If @error Then Return SetError((@Error*10)+3,(@Extended*10)+0,-1)
+        Local $iScale=$iMax_Label_Width
+        Do
+          $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iScale,$hToast_Handle)
+          $iScale+=2
+        Until @Error<>3
+        _Log("iScaleFix="&$iScale)
     Else
         Return SetError((@Error*10)+3,(@Extended*10)+0,-1)
     EndIf
