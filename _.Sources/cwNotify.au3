@@ -261,6 +261,8 @@ EndIf
 
 ;_DebugArrayDisplay($aFieldsDesc)
 Global $idTrayExit
+Global $idTrayQueue
+Global $idTrayTiks
 
 ; cwmAuth Vars
 Global $g_cwmAuth_idDoneBtn
@@ -297,6 +299,8 @@ _nResolveUpdateInfoDNS()
 Local $bExit=False
 
 $idTrayExit=TrayCreateItem("Exit")
+If $bDev Or $bRc Then $idTrayQueue=TrayCreateItem("Queue")
+If $bDev Or $bRc Then $idTrayTiks=TrayCreateItem("Tiks")
 AdlibRegister("_TrayEvent",50)
 
 _Toast_Hide()
@@ -1533,6 +1537,18 @@ Func _TrayEvent()
       $bExit=True
       _Toast_Hide()
       _Exit()
+    Case $idTrayQueue
+      If $bDev Or $bRc Then
+        AdlibUnRegister("_TrayEvent")
+        _ArrayDisplay($aQueue)
+        AdlibRegister("_TrayEvent",50)
+      EndIf
+    Case $idTrayTiks
+      If $bDev Or $bRc Then
+        AdlibUnRegister("_TrayEvent")
+        _ArrayDisplay($aTiks)
+        AdlibRegister("_TrayEvent",50)
+      EndIf
   EndSwitch
 EndFunc   ;==>_TrayEvent
 
