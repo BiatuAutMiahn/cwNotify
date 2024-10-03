@@ -458,7 +458,7 @@ Func tikNotify()
 
     $iIdx=$aQueue[0][1]
     $iIdxMax=$aQueue[0][0]
-    If $iIdx=$iIdxMax Or $bFirstRun Then ; If we're caught up or during first run, clear queue and continue to wait.
+    If $iIdx=$iIdxMax+1 Or $bFirstRun Then ; If we're caught up or during first run, clear queue and continue to wait.
         $bFirstRun=False
         Dim $aQueue[1][$iQueueY]
         $aQueue[0][0]=0
@@ -468,7 +468,7 @@ Func tikNotify()
         Return
     EndIf
     If $fToast_bDismissAll Then ; If user invokes DismissAll, then we ignore this batch of updates.
-        $aQueue[0][1]=$iIdxMax
+        $aQueue[0][1]=$iIdxMax+1
         Return
     EndIf
     ;_Log(StringFormat("NotifyQueue: iLast:%s iMax:%s",$iIdx,$iIdxMax))
