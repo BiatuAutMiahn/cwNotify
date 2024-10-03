@@ -1555,6 +1555,10 @@ Func _TrayEvent()
 EndFunc   ;==>_TrayEvent
 
 Func _Exit()
+    If $bExit Then
+      While Sleep(1000)
+      WEnd
+    EndIf
     $bExit=True
     ;AdlibUnRegister("doOfflineCheck")
     ;AdlibUnRegister("idleCheck")
