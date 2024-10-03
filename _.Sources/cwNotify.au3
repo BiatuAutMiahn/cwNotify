@@ -582,6 +582,10 @@ Func tikWatch()
     $bFieldMod=False
     $sNotify=''
     $tNew=$aTiks[$i][2]
+    If Not IsObj($tNew) Then
+     _Log(StringFormat("~!TikNotObj@tikWatch: iIdx:%s id:%s type:%s",$i, $aTiks[$i][0], $aTiks[$i][1]))
+      ContinueLoop
+    EndIf
     $iIdxLast=_cwmInArray($aTiksLast,$aTiks[$i][0])
     If @error Then
       $sTikTitle="[New Ticket]"
