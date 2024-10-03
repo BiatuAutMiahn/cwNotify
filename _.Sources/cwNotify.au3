@@ -215,6 +215,8 @@ Global $g_cwm_sCI,$g_cwm_sCompany,$g_cwm_sCodeBase,$g_cwm_sSiteUrl,$g_cwm_sApiUr
 Global $g_cwm_sClientId,$g_cwm_sPrivKey,$g_cwm_sPubKey,$g_cwm_sUser,$g_cwm_jLastRet
 Global $g_cwm_hHttp,$g_cwm_hConnect
 Global $bFieldMod
+Global $bRC=StringInStr(@ScriptName,".rc.exe")
+Global $bDev=@Compiled ? False : True
 
 Global $sNewFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.enteredBy"
 Global $sModFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.updatedBy"
@@ -910,7 +912,10 @@ Func _loadState()
 EndFunc   ;==>_loadState
 
 Func _saveState()
-  _Log("Saving State...")
+  If $bRC Or $bDev Then
+    _Log("Saving State...Bypass")
+    Return
+  EndIf
   If $bPurgeTik Then
     FileDelete($gsStateFile)
     $bPurgeTik=False
