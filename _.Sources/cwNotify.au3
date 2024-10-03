@@ -1380,8 +1380,9 @@ Func _cwmProcTik(ByRef $aTikNfo,$iType,$t)
       If UBound($jTikNotes,1)<>1 Then
         _Log("Warn: Cannot retrieve notes for: "&$vTikId&" (Error: "&@extended&')'&@CRLF)
         _ArrayDisplay($jTikNotes)
+      Else
+        $aTikNfo[$iIdx][3]=$jTikNotes[0]
       EndIf
-      $aTikNfo[$iIdx][3]=$jTikNotes[0]
     Else
       $aTikNfo[$iIdx][3]=$jTikNotes
     EndIf
