@@ -500,7 +500,7 @@ Func waitNotify()
 EndFunc
 
 Func _doStats($iTime)
-  If $iFetchAvgTot>=10 Then
+  If $iFetchAvgTot>=100 Then
     $iFetchAvg=$iTime
     $iFetchAvgTot=1
   Else
