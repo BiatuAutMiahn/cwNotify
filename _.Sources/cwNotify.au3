@@ -907,7 +907,7 @@ Func _saveConfig()
 EndFunc   ;==>_saveConfig
 
 Func _loadState()
-  If FileExists($gsStatsFile) Then _FileReadToArray($gsStatsFile,$aStats,0)
+  ;If FileExists($gsStatsFile) Then _FileReadToArray($gsStatsFile,$aStats,0)
   DirCreate($gsDataDir)
   If Not FileExists($gsStateFile) Then Return SetError(1,1,0)
   $aConfig=IniReadSectionNames($gsStateFile)
@@ -942,7 +942,7 @@ Func _loadState()
 EndFunc   ;==>_loadState
 
 Func _saveState()
-  $aStats=_FileWriteFromArray($gsStatsFile,$aStats)
+  ;$aStats=_FileWriteFromArray($gsStatsFile,$aStats)
   If $bDev Then
     _Log("Saving State...Bypass")
     Return
