@@ -673,7 +673,7 @@ Func tikWatch()
         Next
     Next
     If _PurgeOldTiks() Then $bPurgeTik=True ;If _PurgeOldTiks() Then FileDelete($gsStateFile); Purge Resolved/Closed>7 days.
-    ;_saveState() ; Finally,Serialize $aTiksLast,and save.
+    _saveState() ; Finally,Serialize $aTiksLast,and save.
   EndIf
   _Log("MainLoop Took "&TimerDiff($tMainLoop))
   $bNotifyLock=False
