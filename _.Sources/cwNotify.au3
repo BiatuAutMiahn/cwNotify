@@ -51,6 +51,7 @@
 #include <WinAPISys.au3>
 #include <GuiEdit.au3>
 #include <WinAPIProc.au3>
+#include <File.au3>
 
 #include "Includes\JSON_Dictionary.au3"
 #include "Includes\Base64.au3"
@@ -217,6 +218,7 @@ Global $g_cwm_hHttp,$g_cwm_hConnect
 Global $bFieldMod
 Global $iFetchAvgTot=0
 Global $iFetchAvg=0
+Global $aStats[4]; Last, Min, Max, Avg
 Global $bRC=StringInStr(@ScriptName,".rc.exe")
 Global $bDev=@Compiled ? False : True
 If $bDev Then $bRC=True
@@ -268,7 +270,8 @@ Global $g_cwm_sClientId_Crypt
 
 ; Config
 Global $gsConfigFile=$gsDataDir&"\config.ini"
-
+; Stats
+Global $gsStatsFile=$gsDataDir&"\stats.dat"
 ; DPI
 _WinAPI_SetProcessDpiAwarenessContext($DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 $iDpi=_WinAPI_GetDpiForPrimaryMonitor()/96
@@ -491,6 +494,21 @@ Func waitNotify()
   EndIf
 EndFunc
 
+Func _doStats($iTime)
+  If $iFetchAvgTot>=10 Then
+    $iFetchAvg=$iTime
+    $iFetchAvgTot=1
+  Else
+    $iFetchAvg+=$iTime
+    $iFetchAvgTot+=1
+  EndIf
+  $aStats[0]=$iTime
+  If $iTime<$aStats[1] Then $aStats[1]=$iTime
+  If $iTime>$aStats[2] Then $aStats[2]=$iTime
+  $aStats[3]=$iFetchAvg/$iFetchAvgTot
+  _Log(StringFormat('tikFetchStat: {last:%d, min:%d, max:%d, avg:%0.3f}',$aStats[0],$aStats[1],$aStats[2],$aStats[3]))
+EndFunc
+
 Func incNotify()
   If $bNotifyLock Then Return
   AdlibUnRegister("incNotify")
@@ -576,14 +594,7 @@ Func tikWatch()
     Return
   EndIf
   _Log(StringFormat("tikFetch: %d",TimerDiff($iTimer)))
-  If $iFetchAvgTot>=10 Then
-    $iFetchAvg=TimerDiff($iTimerAvg)
-    $iFetchAvgTot=1
-  Else
-    $iFetchAvg+=TimerDiff($iTimerAvg)
-    $iFetchAvgTot+=1
-  EndIf
-  _Log(StringFormat("tikFetchAvg: %0.3f",$iFetchAvg/$iFetchAvgTot))
+  _doStats(TimerDiff($iTimerAvg))
   Global $bNotify
   Global $aOldFields
   Global $aNewFields
@@ -591,7 +602,6 @@ Func tikWatch()
   Global $bCommit=False
   $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
-
     If $bExit Then _Exit()
     $bNewTik=False
     $bNotify=False
@@ -655,7 +665,6 @@ Func tikWatch()
     $aQueue[$iQMax][0]=$sTikTitle
     $aQueue[$iQMax][1]=$sNotify
     $aQueue[$iQMax][2]=$aTiks[$i][0]
-
     $aQueue[0][0]=$iQMax
 ;~     If $fToast_bDismissAll=False Then
 ;~       $aRet=_Toast_ShowMod(0,$sTikTitle,$sNotify,Null,True,True)
@@ -892,6 +901,7 @@ Func _saveConfig()
 EndFunc   ;==>_saveConfig
 
 Func _loadState()
+  If FileExists($gsStatsFile) Then _FileReadToArray($gsStatsFile,$aStats,0)
   DirCreate($gsDataDir)
   If Not FileExists($gsStateFile) Then Return SetError(1,1,0)
   $aConfig=IniReadSectionNames($gsStateFile)
@@ -926,6 +936,7 @@ Func _loadState()
 EndFunc   ;==>_loadState
 
 Func _saveState()
+  $aStats=_FileWriteFromArray($gsStatsFile,$aStats)
   If $bDev Then
     _Log("Saving State...Bypass")
     Return
