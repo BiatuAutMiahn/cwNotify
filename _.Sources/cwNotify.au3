@@ -1151,7 +1151,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         $aFetch[$iMax][1]=$vRet
         $aFetch[$iMax][2]=1; isNote
         $aFetch[$iMax][3]=StringFormat($sFetchNoteUrl,$vRet)
-
+        $aFetch[0][0]=$iMax
     Next
     For $i=1 To $aPastIds[0][0]
 
