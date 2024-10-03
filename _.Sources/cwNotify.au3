@@ -568,11 +568,11 @@ Func tikWatch()
     ;If $bAsync Then AdlibRegister("tikWatch",$iWatchInterval)
     Return
   EndIf
-  Local $bNotify
-  Local $aOldFields
-  Local $aNewFields
-  Local $aModFields
-  $bCommit=False
+  Global $bNotify
+  Global $aOldFields
+  Global $aNewFields
+  Global $aModFields
+  Global $bCommit=False
   $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
 
