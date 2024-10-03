@@ -1449,15 +1449,11 @@ Func _cwmGetTickets(ByRef $aTikNfo,$iType,$sUser)
     Return SetError(1,(@extended*10+2),0)
   EndIf
   For $t In $jTik
-    If $bExit Then
-      _Exit()
-    EndIf
+    If $bExit Then _Exit()
     _cwmProcTik($aTikNfo,$iType,$t)
   Next
   For $i=1 To $aPastIds[0]
-    If $bExit Then
-      _Exit()
-    EndIf
+    If $bExit Then _Exit()
     _cwmProcTik($aTikNfo,$iType,$aPastIds[$i])
   Next
   _Log("_cwmGetTickets took "&TimerDiff($iTimer))
@@ -1536,7 +1532,6 @@ Func _TrayEvent()
   Switch $iTrayMsg
     Case $idTrayExit
       AdlibUnRegister("_TrayEvent")
-      $bExit=True
       _Toast_Hide()
       _Exit()
     Case $idTrayQueue
@@ -1556,18 +1551,19 @@ EndFunc   ;==>_TrayEvent
 
 Func _Exit()
     If $bExit Then
-      While Sleep(1000)
+      While $bExit<>-1
+        Sleep(1000)
       WEnd
+      Exit
     EndIf
     $bExit=True
-    ;AdlibUnRegister("doOfflineCheck")
-    ;AdlibUnRegister("idleCheck")
     AdlibUnRegister("tikWatch")
     _Toast_Set(0,-1,-1,-1,-1,-1,"Consolas",125,125)
     $aRet=_Toast_ShowMod(0,$sTitle,"Exiting...                        ",-5)
     Sleep(2000)
     _Toast_Hide()
     _Log("_Exit()")
+    $bExit=-1
     Exit
 EndFunc   ;==>_Exit
 
@@ -1603,7 +1599,7 @@ Func _getIdealSrv($sDom)
 EndFunc   ;==>_getIdealSrv
 
 Func doOfflineCheck()
-  If $bExit Then Return
+  If $bExit Then _Exit()
   ;If $bAsync Then AdlibUnRegister("doOfflineCheck")
   $bOffline=False
   $iOffline=0
