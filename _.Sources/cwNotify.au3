@@ -316,7 +316,7 @@ Global $bTikNew=False
 Global $bBatch
 Global $aWatchFields=StringSplit("summary,type,subType,item,status,company,priority,severity,impact,owner",',')
 Local $vTikId,$vTikLastUpdate
-Global $iUserIdle,$bUserIdle,$bUserIdleLast,$bWsLock,$bWsLockLast
+;Global $iUserIdle,$bUserIdle,$bUserIdleLast,$bWsLock,$bWsLockLast
 Global $fToast_OpenTik=False,$hToast_OpenTik
 Global $fToast_bDismissAll=False,$hToast_DismissAll
 Global $iToast_TikId
@@ -430,8 +430,8 @@ Global $bIncNotify=False
 tikWatch()
 $iWatchTimer=TimerInit()
 If $bAsync Then
-    AdlibRegister("doOfflineCheck",500)
-    AdlibRegister("idleCheck",5000)
+    ;AdlibRegister("doOfflineCheck",500)
+    ;AdlibRegister("idleCheck",5000)
     AdlibRegister("tikNotify",250)
     ;AdlibRegister("tikWatch",$iWatchInterval)
 EndIf
@@ -441,6 +441,7 @@ While Sleep(125)
     If $bExit Then _Exit()
     If $bNotifyLock Then ContinueLoop ; Wait for queue to finish updating
     If TimerDiff($iWatchTimer)>=$iWatchInterval Then
+      doOfflineCheck()
       tikWatch()
       $iWatchTimer=TimerInit()
     EndIf
@@ -448,8 +449,7 @@ WEnd
 
 Func tikNotify()
     If $bExit Then _Exit()
-    doOfflineCheck()
-    idleCheck()
+    ;idleCheck()
     If $bNotifyLock Or $bIncNotify Then Return ; Wait for queue to finish updating
     If $aQueue[0][0]=0 Then; If there are no new events, continue loop.
         ;If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
@@ -471,6 +471,7 @@ Func tikNotify()
         $aQueue[0][1]=$iIdxMax
         Return
     EndIf
+    ;_Log(StringFormat("NotifyQueue: iLast:%s iMax:%s",$iIdx,$iIdxMax))
     If $hToast_Handle<>0 Then Return
     $aRet=_Toast_ShowMod(0,$aQueue[$iIdx][0],$aQueue[$iIdx][1],Null,True,True) ; Spawn toast.
     $iToast_TikId=$aQueue[$iIdx][2]
@@ -526,30 +527,30 @@ Func test()
     $iHB+=1
 EndFunc
 
-Func idleCheck()
-  If $bAsync Then AdlibUnRegister("idleCheck")
-  $iUserIdle=_Timer_GetIdleTime()
-  $bUserIdle=$iUserIdle>=300000 ? True : False
-  $bWsLock=_isWindowsLocked()
-  If $bWsLockLast<>$bWsLock Then
-    If $bWsLock Then
-      $bUserIdle=True
-    EndIf
-    $bWsLockLast=$bWsLock
-  EndIf
-  If $bUserIdleLast<>$bUserIdle Then
-    $bUserIdleLast=$bUserIdle
-    If Not $bUserIdle Then
-        _Log("Welcome Back"&@CRLF)
-        _Toast_ShowMod(0,$sTitle,"Welcome Back!                    ",-30)
-        _TimerSleep(5000)
-        _Toast_Hide()
-    Else
-        _Log("Workstation Idle."&@CRLF)
-    EndIf
-  EndIf
-  If $bAsync Then AdlibRegister("idleCheck",5000)
-EndFunc
+;~ Func idleCheck()
+;~   If $bAsync Then AdlibUnRegister("idleCheck")
+;~   $iUserIdle=_Timer_GetIdleTime()
+;~   $bUserIdle=$iUserIdle>=300000 ? True : False
+;~   $bWsLock=_isWindowsLocked()
+;~   If $bWsLockLast<>$bWsLock Then
+;~     If $bWsLock Then
+;~       $bUserIdle=True
+;~     EndIf
+;~     $bWsLockLast=$bWsLock
+;~   EndIf
+;~   If $bUserIdleLast<>$bUserIdle Then
+;~     $bUserIdleLast=$bUserIdle
+;~     If Not $bUserIdle Then
+;~         _Log("Welcome Back"&@CRLF)
+;~         _Toast_ShowMod(0,$sTitle,"Welcome Back!                    ",-30)
+;~         _TimerSleep(5000)
+;~         _Toast_Hide()
+;~     Else
+;~         _Log("Workstation Idle."&@CRLF)
+;~     EndIf
+;~   EndIf
+;~   If $bAsync Then AdlibRegister("idleCheck",5000)
+;~ EndFunc
 
 Func _TimerSleep($iTimer)
     Sleep($iTimer)
@@ -567,7 +568,7 @@ EndFunc
 
 Func tikWatch()
   If $bOffline Then Return
-  If $bUserIdle Then Return
+  ;If $bUserIdle Then Return
   $tMainLoop=TimerInit()
   $bNotifyLock=True
   $bBatch=True
@@ -1554,8 +1555,8 @@ EndFunc   ;==>_TrayEvent
 
 Func _Exit()
     $bExit=True
-    AdlibUnRegister("doOfflineCheck")
-    AdlibUnRegister("idleCheck")
+    ;AdlibUnRegister("doOfflineCheck")
+    ;AdlibUnRegister("idleCheck")
     AdlibUnRegister("tikWatch")
     _Toast_Set(0,-1,-1,-1,-1,-1,"Consolas",125,125)
     $aRet=_Toast_ShowMod(0,$sTitle,"Exiting...                        ",-5)
@@ -1598,7 +1599,7 @@ EndFunc   ;==>_getIdealSrv
 
 Func doOfflineCheck()
   If $bExit Then Return
-  If $bAsync Then AdlibUnRegister("doOfflineCheck")
+  ;If $bAsync Then AdlibUnRegister("doOfflineCheck")
   $bOffline=False
   $iOffline=0
   While $iOffline<$iOfflineThresh
@@ -1630,7 +1631,7 @@ Func doOfflineCheck()
       _Toast_Hide()
     EndIf
   EndIf
-  If $bAsync Then AdlibRegister("doOfflineCheck",500)
+  ;If $bAsync Then AdlibRegister("doOfflineCheck",500)
   Return $bOffline
 EndFunc   ;==>doOfflineCheck
 
