@@ -508,7 +508,7 @@ Func _doStats($iTime)
     $iFetchAvgTot+=1
   EndIf
   $aStats[0]=$iTime
-  If $iTime<$aStats[1] Then $aStats[1]=$iTime
+  If $iTime<$aStats[1] Or $aStats[1]=0 Then $aStats[1]=$iTime
   If $iTime>$aStats[2] Then $aStats[2]=$iTime
   $aStats[3]=$iFetchAvg/$iFetchAvgTot
   _Log(StringFormat('tikFetchStat: {last:%d, min:%d, max:%d, avg:%0.3f}',$aStats[0],$aStats[1],$aStats[2],$aStats[3]))
