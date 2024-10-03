@@ -217,6 +217,7 @@ Global $g_cwm_hHttp,$g_cwm_hConnect
 Global $bFieldMod
 Global $bRC=StringInStr(@ScriptName,".rc.exe")
 Global $bDev=@Compiled ? False : True
+If $bDev Then $bRC=True
 
 Global $sNewFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.enteredBy"
 Global $sModFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.updatedBy"
@@ -273,6 +274,7 @@ $iDpi=_WinAPI_GetDpiForPrimaryMonitor()/96
 _Log("======================================================"&@CRLF)
 
 Global $gsStateFile=$gsDataDir&"\state.ini"
+If $bRC Then $gsStateFile=$gsDataDir&"\state.rc.ini"
 Global $g_cwm_aEndPoints,$g_cwm_sSite="na.myconnectwise.net"
 Global $g_cwm_aApiEndPoints
 Global $bOffline=False,$bOfflineLast=False,$iOfflineThresh=3
@@ -912,7 +914,7 @@ Func _loadState()
 EndFunc   ;==>_loadState
 
 Func _saveState()
-  If $bRC Or $bDev Then
+  If $bDev Then
     _Log("Saving State...Bypass")
     Return
   EndIf
