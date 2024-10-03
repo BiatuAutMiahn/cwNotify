@@ -1,6 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
-#AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.exe
+#AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.rc.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
 #AutoIt3Wrapper_Res_Fileversion=1.1.0.1017
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
