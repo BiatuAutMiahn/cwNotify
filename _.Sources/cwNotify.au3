@@ -215,6 +215,8 @@ Global $g_cwm_sCI,$g_cwm_sCompany,$g_cwm_sCodeBase,$g_cwm_sSiteUrl,$g_cwm_sApiUr
 Global $g_cwm_sClientId,$g_cwm_sPrivKey,$g_cwm_sPubKey,$g_cwm_sUser,$g_cwm_jLastRet
 Global $g_cwm_hHttp,$g_cwm_hConnect
 Global $bFieldMod
+Global $iFetchAvgTot=0
+Global $iFetchAvg=0
 Global $bRC=StringInStr(@ScriptName,".rc.exe")
 Global $bDev=@Compiled ? False : True
 If $bDev Then $bRC=True
@@ -547,7 +549,8 @@ Func tikWatch()
   $tMainLoop=TimerInit()
   $bNotifyLock=True
   $bBatch=True
-  $iTimer=TimerInit()
+  Local $iTimer=TimerInit()
+  Local $iTimerAvg=TimerInit()
   If $bCurl Then
     _cwmGetTiksNew($aTiks,0,$g_cwm_sUser)
   Else
@@ -572,6 +575,15 @@ Func tikWatch()
     ;If $bAsync Then AdlibRegister("tikWatch",$iWatchInterval)
     Return
   EndIf
+  _Log(StringFormat("tikFetch: %d",TimerDiff($iTimer)))
+  If $iFetchAvgTot>=10 Then
+    $iFetchAvg=TimerDiff($iTimerAvg)
+    $iFetchAvgTot=1
+  Else
+    $iFetchAvg+=TimerDiff($iTimerAvg)
+    $iFetchAvgTot+=1
+  EndIf
+  _Log(StringFormat("tikFetchAvg: %0.3f",$iFetchAvg/$iFetchAvgTot))
   Global $bNotify
   Global $aOldFields
   Global $aNewFields
@@ -985,6 +997,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
 	Local $hMulti=Curl_Multi_Init()
 	If Not $hMulti Then
         _Log(StringFormat("_curlGetTook: %f",TimerDiff($iTimer)))
+        $iTimer=TimerDiff($iTimer)
         Return SetError(1,0,1)
     EndIf
     If Not IsArray($vUrl) Then
@@ -1201,7 +1214,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         EndIf
 
     Next
-    _Log("_cwmGetTickets took "&TimerDiff($iTimer))
+    ;_Log("_cwmGetTickets took "&TimerDiff($iTimer))
 EndFunc
 
 Func _cwmInit()
