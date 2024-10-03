@@ -478,7 +478,7 @@ Func tikNotify()
     If @error Then
         _Log(StringFormat("~!Error@Main:_Toast_ShowMod,%s,%s",@Error,@Extended))
     EndIf
-    AdlibRegister("waitNotify",50)
+    AdlibRegister("waitNotify",250)
 EndFunc
 
 Func waitNotify()
@@ -492,10 +492,10 @@ Func waitNotify()
   _Toast_Hide()
   If $bNotifyLock Then
     $bIncNotify=True
-    AdlibRegister("incNotify",50)
+    AdlibRegister("incNotify",250)
   Else
       $aQueue[0][1]+=1
-      AdlibRegister("waitNotify",50)
+      AdlibRegister("tikNotify",250)
   EndIf
 EndFunc
 
@@ -519,7 +519,7 @@ Func incNotify()
   AdlibUnRegister("incNotify")
   $bIncNotify=False
   $aQueue[0][1]+=1
-  AdlibRegister("waitNotify",50)
+  AdlibRegister("tikNotify",250)
 EndFunc
 
 Func test()
@@ -585,7 +585,8 @@ Func tikWatch()
         ;AdlibRegister("tikWatch",$iWatchInterval)
       Else
         $iWatchTimer=TimerInit()
-    EndIf
+        $bNotifyLock=False
+      EndIf
     Return
   EndIf
   If $bCurl Then
@@ -596,6 +597,7 @@ Func tikWatch()
   If @error Then
     _Log("Error "&@extended&",cannot check for Project tickets.")
     ;If $bAsync Then AdlibRegister("tikWatch",$iWatchInterval)
+    $bNotifyLock=False
     Return
   EndIf
   _Log(StringFormat("tikFetch: %d",TimerDiff($iTimer)))
