@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
 #AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.rc.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1025
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1026
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Res_Language=1033
@@ -72,7 +72,7 @@ Opt("TrayIconDebug", 1)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1025"
+Global Const $VERSION = "1.1.0.1026"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -455,10 +455,10 @@ Func tikNotify()
         ;If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
         Return
     EndIf
-
     $iIdx=$aQueue[0][1]
     $iIdxMax=$aQueue[0][0]
     If $iIdx=$iIdxMax+1 Or $bFirstRun Then ; If we're caught up or during first run, clear queue and continue to wait.
+        ;_DebugArrayDisplay($aQueue)
         $bFirstRun=False
         Dim $aQueue[1][$iQueueY]
         $aQueue[0][0]=0
