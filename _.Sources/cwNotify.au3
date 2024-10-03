@@ -618,11 +618,17 @@ Func tikWatch()
     EndIf
     $bCommit=True
     $tLastNote=$aTiks[$i][3]
-    $sName=''
-    If $tLastNote.Exists("member") Then $sName=_JSON_Get($tLastNote,"member.name")
-    If $tLastNote.Exists("contact") Then $sName=_JSON_Get($tLastNote,"contact.name")
-    ;$sNotify&=_strTrunc(StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text")),60)&@CRLF
-    $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text"))
+    If Not IsObj($tLastNote) Then
+     _Log(StringFormat("~!tNoteNotObj@tikWatch: iIdx:%s id:%s type:%s",$i, $aTiks[$i][0], $aTiks[$i][1]))
+     $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: [Last Note] <cwNotify Error, see log>")
+    Else
+      $sName=''
+      _Log(StringFormat("[Dbg]:iIdxLast:tLastNote %d", $iIdxLast)&@CRLF)
+      If $tLastNote.Exists("member") Then $sName=_JSON_Get($tLastNote,"member.name")
+      If $tLastNote.Exists("contact") Then $sName=_JSON_Get($tLastNote,"contact.name")
+      ;$sNotify&=_strTrunc(StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text")),60)&@CRLF
+      $sNotify&=StringFormat("%"&$aFieldsDesc[0][1]&"s: [%s] %s","Last Note",$sName,_JSON_Get($tLastNote,"text"))
+    EndIf
     If $bBatch Then
       $bBatch=False
       _Log("================"&@CRLF)
