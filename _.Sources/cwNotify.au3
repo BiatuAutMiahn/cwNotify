@@ -580,13 +580,9 @@ Func tikWatch()
     _cwmGetTickets($aTiks,0,$g_cwm_sUser)
   EndIf
   If @error Then
-    _Log("Error "&@extended&",cannot check for Service tickets.")
-    If $bAsync Then
-        ;AdlibRegister("tikWatch",$iWatchInterval)
-      Else
-        $iWatchTimer=TimerInit()
-        $bNotifyLock=False
-      EndIf
+    _Log("Error "&@Error&":"&@Extended&",cannot check for Service tickets.")
+    $iWatchTimer=TimerInit()
+    $bNotifyLock=False
     Return
   EndIf
   If $bCurl Then
@@ -1013,7 +1009,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
     Local $vRet='',$bRun,$hCurl,$hMulti,$iCode,$iQueue,$iMax,$vMsg,$aUrls[]=[0]
 	Local $hMulti=Curl_Multi_Init()
 	If Not $hMulti Then
-        _Log(StringFormat("_curlGetTook: %f",TimerDiff($iTimer)))
+        _Log(StringFormat("~!Error,hMultiNull@_curlGetTook,: %f",TimerDiff($iTimer)))
         $iTimer=TimerDiff($iTimer)
         Return SetError(1,0,1)
     EndIf
@@ -1029,7 +1025,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
         _ArrayColInsert($vUrl,$iColInitial+1)
         If @error Then
             _Log(StringFormat("~!Error,ArrColIns@_curlGet:%d,%d,%d",UBound($vUrl,0),UBound($vUrl,2),$iColInitial))
-            Return SetError(1,1,0)
+            Return SetError(2,1,0)
         EndIf
     WEnd
     $iCol=UBound($vUrl,2)-1
@@ -1089,12 +1085,14 @@ Func _curlGet($vUrl,$bCwmCall=False)
 	Until $bRun=0
 	Curl_Multi_Cleanup($hMulti)
     If UBound($vUrl,1)<2 Then
+        ;_DebugArrayDisplay($vUrl)
         _Log(StringFormat("_curlGetTook: %f",TimerDiff($iTimer)))
-        Return SetError(1,0,$vUrl)
+        Return SetError(0,3,$vUrl)
     EndIf
     If UBound($vUrl,1)>2 Then
+        ;_DebugArrayDisplay($vUrl)
         _Log(StringFormat("_curlGetTook: %f",TimerDiff($iTimer)))
-        Return SetError(0,0,$vUrl)
+        Return SetError(0,4,$vUrl)
     EndIf
     _Log(StringFormat("_curlGetTook: %f",TimerDiff($iTimer)))
     Return SetError(0,$vUrl[1][$iCol-2],$vUrl[1][$iCol])
@@ -1212,6 +1210,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
     Next
     Local $aTiksNew=_curlGet($aFetch,1)
+    If @error Or Not IsArray($aTiksNew) Then Return SetError((@Error*10)+1,0,0)
     _Log("GetTikDetail...done")
     ;_DebugArrayDisplay($aTiksNew)
     $iCol=UBound($aTiksNew,2)-1
