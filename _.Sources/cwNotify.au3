@@ -199,8 +199,12 @@ EndFunc   ;==>_AutErrorFunc
 
 ;~ ;Next
 ;~ Exit
-; Prevent multiple instances of the App.
-If _Singleton("Infinity."&$sAlias,1)=0 Then
+If StringInStr($CmdLineRaw,"~!Install") Then
+  cwInstall()
+  Exit 0
+EndIf
+If Not StringInStr($CmdLineRaw,"~!InstallPost") And _Singleton("Infinity."&$sAlias,1)=0 Then
+  ; Prevent multiple instances of the App.
   MsgBox(32,$sTitle,"Another instance is already running.")
   _Log("_Singleton,Exit")
   Exit
@@ -707,6 +711,8 @@ Func _cwmAuth()
         _saveConfig()
         _GUICtrlStatusBar_SetText($hStatus,"Encrypting/Saving Keys...Done")
         Sleep(1000)
+        _GUICtrlStatusBar_SetText($hStatus,"Configuring...")
+        cwInstall()
         GUIDelete($hAuthWnd)
         Return SetError(0,0,0)
     EndSwitch
@@ -1623,3 +1629,29 @@ Func __Toast_WM_EVENTSMod($hWnd,$Msg,$wParam,$lParam)
   EndIf
   Return 'GUI_RUNDEFMSG'
 EndFunc   ;==>__Toast_WM_EVENTSMod
+
+
+Func cwInstall()
+  If @Compiled Then
+    Local $bStartup,$bDesktop,$bStartMenu
+    If MsgBox(32+4,$sTitle,"Would you like to run at startup?")==6 Then $bStartup=1
+    If MsgBox(32+4,$sTitle,"Would you like to add to the desktop shortcut?")==6 Then $bDesktop=1
+    If MsgBox(32+4,$sTitle,"Would you like to add to the Start Menu?")==6 Then $bStartMenu=1
+    If $bStartup Or $bDesktop Or $bStartMenu Then
+      FileCopy(@AutoItExe,$gsDataDir&"\cwNotify.exe",1)
+    EndIf
+    If $bStartup Then
+      RegWrite("HKCU\Software\Microsoft\Windows\CurrentVersion\Run","cwNotify","REG_SZ",$gsDataDir&"\cwNotify.exe")
+    EndIf
+    If $bDesktop Then
+      FileCreateShortcut($gsDataDir&"\cwNotify.exe",@DesktopDir&"\cwNotify.lnk",$gsDataDir)
+    EndIf
+    If $bStartMenu Then
+      FileCreateShortcut($gsDataDir&"\cwNotify.exe",@ProgramsDir&"\cwNotify.lnk",$gsDataDir)
+    EndIf
+    If MsgBox(32+4,$sTitle,"Would you like to run now?")==6 Then
+      Run($gsDataDir&"\cwNotify.exe",$gsDataDir,@SW_SHOW)
+      Exit 0
+    EndIf
+  EndIf
+EndFunc
