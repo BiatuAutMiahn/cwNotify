@@ -203,7 +203,7 @@ If StringInStr($CmdLineRaw,"~!Install") Then
   cwInstall()
   Exit 0
 EndIf
-If Not StringInStr($CmdLineRaw,"~!InstallPost") And _Singleton("Infinity."&$sAlias,1)=0 Then
+If Not StringInStr($CmdLineRaw,"~!PostInstall") And _Singleton("Infinity."&$sAlias,1)=0 Then
   ; Prevent multiple instances of the App.
   MsgBox(32,$sTitle,"Another instance is already running.")
   _Log("_Singleton,Exit")
@@ -1650,7 +1650,7 @@ Func cwInstall()
       FileCreateShortcut($gsDataDir&"\cwNotify.exe",@ProgramsDir&"\cwNotify.lnk",$gsDataDir)
     EndIf
     If MsgBox(32+4,$sTitle,"Would you like to run now?")==6 Then
-      Run($gsDataDir&"\cwNotify.exe",$gsDataDir,@SW_SHOW)
+      Run($gsDataDir&"\cwNotify.exe ~!PostInstall",$gsDataDir,@SW_SHOW)
       Exit 0
     EndIf
   EndIf
