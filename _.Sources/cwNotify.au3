@@ -312,7 +312,7 @@ Global $iWatchInterval=10000
 ;Global $iWatchInterval=10
 Global $bFirstRun=True
 Global $iMaxUrlLen=1745
-
+Global $tDelay
 Global $iIdx
 Global $bTikNew=False
 Global $bBatch
