@@ -214,7 +214,7 @@ Global $aNotify[]=[0]
 Global $aTiksLast[][4]=[[0,'','','']]
 Global $aTiks[][4]=[[0,'','','']]
 Global $bExit
-
+Global $tDelay
 Global $g_cwm_oHttp
 Global $g_cwm_sEpoch="1970/01/01 00:00:00"
 Global $g_cwm_sCI,$g_cwm_sCompany,$g_cwm_sCodeBase,$g_cwm_sSiteUrl,$g_cwm_sApiUri,$g_cwm_sClientId,$g_cwm_sAuthToken
