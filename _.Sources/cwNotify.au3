@@ -1060,13 +1060,11 @@ Func _curlGet($vUrl,$bCwmCall=False)
         ;$vUrl[$i][0]=Curl_Easy_Escape(0,$vUrl[$i][0])
     Next
 	Do
-
         $iIdx=0
         $vRet=Null
-		Curl_Multi_Perform($hMulti,$bRun)
+        Curl_Multi_Perform($hMulti,$bRun)
         $iQueue=0
         Do
-
             $vMsg=Curl_Multi_Info_Read($hMulti,$iQueue)
             $iMsg=DllStructGetData($vMsg, "msg")
             If $iMsg<>$CURLMSG_DONE Then ContinueLoop
@@ -1158,6 +1156,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         _Log(@Error&','&@Extended)
         Return SetError(1,1,0)
     EndIf
+
     ;_DebugArrayDisplay($aPastIds,$sType)
     Local $jRet
     If IsArray($aPastIds) Then
@@ -1193,7 +1192,6 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
     _Log("GetTikDetail...")
     Local $aFetch[][4]=[[0,'','']]
     For $t In $jRet
-
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$t)
         If @error=-1 Then ContinueLoop ; Ticket not updated.
@@ -1218,7 +1216,6 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         $aFetch[0][0]=$iMax
     Next
     For $i=1 To $aPastIds[0][0]
-
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$aPastIds[$i][0])
         If @error=-1 Then ContinueLoop ; Ticket not updated.
@@ -1240,7 +1237,6 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         $aFetch[$iMax][2]=1; isNote
         $aFetch[$iMax][3]=StringFormat($sFetchNoteUrl,$vRet)
         $aFetch[0][0]=$iMax
-
     Next
     Local $aTiksNew=_curlGet($aFetch,1)
     If @error Or Not IsArray($aTiksNew) Then Return SetError((@Error*10)+1,0,0)
