@@ -79,11 +79,14 @@ Global $gsLogFile=$gsDataDir&"\cwNotifier.log"
 Global $iUniDelay=1
 
 Func _Log($sLog)
+  $vLastErr=@Error
+  $vLastExt=@Extended
   DirCreate($gsDataDir)
   If FileGetSize($gsLogFile)>=1024*1024 Then FileDelete($gsLogFile)
   $sStamp=StringFormat("%s.%02d.%02d,%02d:%02d:%02d.%03d",@YEAR,@MON,@MDAY,@HOUR,@MIN,@SEC,@MSEC)
   FileWriteLine($gsLogFile,'['&$sStamp&'] '&$sLog)
   ConsoleWrite('+>['&$sStamp&'] '&$sLog&@CRLF)
+  SetError($vLastErr,$vLastExt)
 EndFunc   ;==>_Log
 
 $g_oErrorCbDef=ObjEvent("AutoIt.Error")
