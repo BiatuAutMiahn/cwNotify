@@ -1196,8 +1196,10 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$t)
+        If @error=-1 Then ContinueLoop ; Ticket not updated.
         If Not $vRet Then
           _Log(StringFormat("~!Warn@_cwmGetTiksNew,$vRet is False!",$i))
+          _DebugArrayDisplay($aTikNfo,$sType&','&$iType&','&@Error&','&@Extended&','&_JSON_Get($t,"id"))
           ContinueLoop
         EndIf
         $iIdx=@Extended
@@ -1219,6 +1221,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$aPastIds[$i][0])
+        If @error=-1 Then ContinueLoop ; Ticket not updated.
         If Not $vRet Then
           _Log(StringFormat("~!Error@_cwmGetTiksNew,$aTikNfo[%s][0] is empty!",$i))
           ContinueLoop
@@ -1321,7 +1324,7 @@ Func _cwmProcTikNew(ByRef $aTikNfo,$iType,$t)
     $aTikNfo[$iIdx][4]=$iType
     $aTikNfo[0][0]=$iIdx
   Else
-    If ($aTikNfo[$iIdx][1])=$vTikLastUpdate Then Return SetError(0,@Extended,0)  ;ContinueLoop
+    If ($aTikNfo[$iIdx][1])=$vTikLastUpdate Then Return SetError(-1,@Extended,0)  ;ContinueLoop, tik not updated!
     _Log('+Ticket Updated: '&$vTikId&"("&($aTikNfo[$iIdx][1])&','&$vTikLastUpdate&")"&@CRLF)
     $aTikNfo[$iIdx][1]=$vTikLastUpdate
     ;_Log(_JSON_Generate($aTikNfo[$iIdx][2]))
