@@ -911,30 +911,39 @@ Func _loadState()
   DirCreate($gsDataDir)
   If Not FileExists($gsStateFile) Then Return SetError(1,1,0)
   $aConfig=IniReadSectionNames($gsStateFile)
-  Dim $aConfigNew[$aConfig[0]+1][6]
-  $aConfigNew[0][0]=$aConfig[0]
+  Dim $aConfigNew[1][6]
+  $aConfigNew[0][0]=0
   For $i=1 To $aConfig[0]
-    $aConfigNew[$i][0]=$aConfig[$i]
-    $aConfigNew[$i][1]=IniRead($gsStateFile,$aConfig[$i],"LastMod","")
-    If $aConfigNew[$i][1]=="" Then
-      _Log("LastState Corrupt ("&$aConfig[$i]&')'&@CRLF)
+    $sTik=$aConfig[$i]
+    $iMod=IniRead($gsStateFile,$aConfig[$i],"LastMod","")
+    $iType=IniRead($gsStateFile,$aConfig[$i],"Type","")
+    If $sTik="" Then
+      _Log(StringFormat("~!Warn@_loadState,InvTik@section:%s:%s",$i,$aConfig[$i]))
       ContinueLoop
     EndIf
-    $vData=IniRead($gsStateFile,$aConfig[$i],"jTik","")
-    If $vData=="" Then
-      _Log("LastState Corrupt ("&$aConfig[$i]&')'&@CRLF)
+    If $iMod=0 Then
+      _Log(StringFormat("~!Warn@_loadState,InvMod@section:%s:%s",$i,$aConfig[$i]))
       ContinueLoop
     EndIf
-    $vData=BinaryToString(_Base64Decode($vData))
-    $aConfigNew[$i][2]=_JSON_Parse($vData)
-    $vData=IniRead($gsStateFile,$aConfig[$i],"jLastNote","")
-    If $vData=="" Then
-      _Log("LastState Corrupt ("&$aConfig[$i]&')'&@CRLF)
+    $vTik=IniRead($gsStateFile,$aConfig[$i],"jTik","")
+    If $vTik=="" Then
+      _Log(StringFormat("~!Warn@_loadState,InvTikData@section:%s:%s",$i,$aConfig[$i]))
       ContinueLoop
     EndIf
-    $vData=BinaryToString(_Base64Decode($vData))
-    $aConfigNew[$i][3]=_JSON_Parse($vData)
-    $aConfigNew[$i][4]=IniRead($gsStateFile,$aConfig[$i],"Type","")
+    $vTik=BinaryToString(_Base64Decode($vTik))
+    $vNote=IniRead($gsStateFile,$aConfig[$i],"jLastNote","")
+    If $vNote=="" Then
+      _Log(StringFormat("~!Warn@_loadState,InvNoteData@section:%s:%s",$i,$aConfig[$i]))
+      ContinueLoop
+    EndIf
+    $vNote=BinaryToString(_Base64Decode($vNote))
+    $iMax=UBound($aConfigNew,1)
+    ReDim $aConfigNew[$iMax+1][6]
+    $aConfigNew[$iMax][0]=$sTik
+    $aConfigNew[$iMax][1]=$iMod
+    $aConfigNew[$iMax][2]=_JSON_Parse($vTik)
+    $aConfigNew[$iMax][3]=_JSON_Parse($vNote)
+    $aConfigNew[$iMax][4]=$iType
   Next
   ;_ArrayDisplay($aConfigNew)
   $aTiks=$aConfigNew
@@ -953,6 +962,10 @@ Func _saveState()
   EndIf
   DirCreate($gsDataDir)
   For $i=1 To $aTiksLast[0][0]
+    If $aTiksLast[$i][0]="" Or $aTiksLast[$i][1]=0 Then
+      _Log(StringFormat("~!Warn@_saveState,OmitInvData:%s",$i))
+      ContinueLoop
+    EndIf
     IniWrite($gsStateFile,$aTiksLast[$i][0],"LastMod",$aTiksLast[$i][1])
     IniWrite($gsStateFile,$aTiksLast[$i][0],"jTik",_Base64Encode(_JSON_Generate($aTiksLast[$i][2])))
     IniWrite($gsStateFile,$aTiksLast[$i][0],"jLastNote",_Base64Encode(_JSON_Generate($aTiksLast[$i][3])))
@@ -1122,11 +1135,15 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
         If $bExit Then _Exit()
         If $iType<>$aTikNfo[$i][4] Then ContinueLoop
+        If $aTikNfo[$i][0]="" Then
+          _Log(StringFormat("~!Warn@_cwmGetTiksNew,$aTikNfo[%s][0] is empty!",$i))
+          _DebugArrayDisplay($aTikNfo)
+          ContinueLoop
+        EndiF
         $iMax=UBound($aPastIds,1)
         ReDim $aPastIds[$iMax+1]
         $aPastIds[$iMax]=StringFormat($sPastComUrl,$aTikNfo[$i][0])
         $aPastIds[0]=$iMax
-
     Next
     $iMax=UBound($aPastIds,1)
     ReDim $aPastIds[$iMax+1]
@@ -1176,7 +1193,10 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$t)
-        If Not $vRet Then ContinueLoop
+        If Not $vRet Then
+          _Log(StringFormat("~!Warn@_cwmGetTiksNew,$vRet is False!",$i))
+          ContinueLoop
+        EndIf
         $iIdx=@Extended
         $iMax=UBound($aFetch,1)
         ReDim $aFetch[$iMax+1][4]
@@ -1196,7 +1216,10 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
 
         If $bExit Then _Exit()
         $vRet=_cwmProcTikNew($aTikNfo,$iType,$aPastIds[$i][0])
-        If Not $vRet Then ContinueLoop
+        If Not $vRet Then
+          _Log(StringFormat("~!Error@_cwmGetTiksNew,$aTikNfo[%s][0] is empty!",$i))
+          ContinueLoop
+        EndIf
         $iIdx=@Extended
         $iMax=UBound($aFetch,1)
         ReDim $aFetch[$iMax+1][4]
