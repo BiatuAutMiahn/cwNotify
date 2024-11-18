@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
 #AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.rc.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1049
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1054
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Res_Language=1033
@@ -70,7 +70,7 @@ Opt("TrayIconDebug", 1)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1049"
+Global Const $VERSION = "1.1.0.1054"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -920,14 +920,14 @@ Func _loadState()
     $sTik=$aConfig[$i]
     $iMod=IniRead($gsStateFile,$aConfig[$i],"LastMod","")
     $iType=IniRead($gsStateFile,$aConfig[$i],"Type","")
-    If $sTik="" Then
-      _Log(StringFormat("~!Warn@_loadState,InvTik@section:%s:%s",$i,$aConfig[$i]))
-      ContinueLoop
-    EndIf
-    If $iMod=0 Then
-      _Log(StringFormat("~!Warn@_loadState,InvMod@section:%s:%s",$i,$aConfig[$i]))
-      ContinueLoop
-    EndIf
+    ;If $sTik="" Then
+    ;  _Log(StringFormat("~!Warn@_loadState,InvTik@section:%s:%s",$i,$aConfig[$i]))
+    ;  ContinueLoop
+    ;EndIf
+    ;If $iMod=0 Then
+    ;  _Log(StringFormat("~!Warn@_loadState,InvMod@section:%s:%s",$i,$aConfig[$i]))
+    ;  ContinueLoop
+    ;EndIf
     $vTik=IniRead($gsStateFile,$aConfig[$i],"jTik","")
     If $vTik=="" Then
       _Log(StringFormat("~!Warn@_loadState,InvTikData@section:%s:%s",$i,$aConfig[$i]))
@@ -948,6 +948,7 @@ Func _loadState()
     $aConfigNew[$iMax][3]=_JSON_Parse($vNote)
     $aConfigNew[$iMax][4]=$iType
   Next
+  $aConfigNew[0][0]=$iMax
   ;_ArrayDisplay($aConfigNew)
   $aTiks=$aConfigNew
   $aTiksLast=$aConfigNew
@@ -1138,7 +1139,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         If $iType<>$aTikNfo[$i][4] Then ContinueLoop
         If $aTikNfo[$i][0]="" Then
           _Log(StringFormat("~!Warn@_cwmGetTiksNew,$aTikNfo[%s][0] is empty!",$i))
-          _DebugArrayDisplay($aTikNfo)
+          ;_DebugArrayDisplay($aTikNfo)
           ContinueLoop
         EndiF
         $iMax=UBound($aPastIds,1)
@@ -1197,7 +1198,7 @@ Func _cwmGetTiksNew(ByRef $aTikNfo,$iType,$sUser)
         If @error=-1 Then ContinueLoop ; Ticket not updated.
         If Not $vRet Then
           _Log(StringFormat("~!Warn@_cwmGetTiksNew,$vRet is False!",$i))
-          _DebugArrayDisplay($aTikNfo,$sType&','&$iType&','&@Error&','&@Extended&','&_JSON_Get($t,"id"))
+          ;_DebugArrayDisplay($aTikNfo,$sType&','&$iType&','&@Error&','&@Extended&','&_JSON_Get($t,"id"))
           ContinueLoop
         EndIf
         $iIdx=@Extended
