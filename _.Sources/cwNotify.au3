@@ -2,7 +2,7 @@
 #AutoIt3Wrapper_Icon=Res\cwdgs.ico
 #AutoIt3Wrapper_Outfile_x64=..\_.rc\cwNotify.async.rc.exe
 #AutoIt3Wrapper_Res_Description=ConnectWise Notifier
-#AutoIt3Wrapper_Res_Fileversion=1.1.0.1054
+#AutoIt3Wrapper_Res_Fileversion=1.1.0.1091
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Fileversion_First_Increment=y
 #AutoIt3Wrapper_Res_Language=1033
@@ -70,7 +70,7 @@ Opt("TrayIconDebug", 1)
 
 ;#include "..\Includes\_StringInPixels.au3"
 Global Const $sAlias="cwNotify"
-Global Const $VERSION = "1.1.0.1054"
+Global Const $VERSION = "1.1.0.1091"
 Global $sTitle=$sAlias&" v"&$VERSION
 
 ; Logging,Purge log >=1MB
@@ -199,15 +199,14 @@ EndFunc   ;==>_AutErrorFunc
 
 ;~ ;Next
 ;~ Exit
+
 ; Prevent multiple instances of the App.
 If StringInStr($CmdLineRaw,"~!Install") Then
   cwInstall()
   Exit 0
-EndIf
-If Not StringInStr($CmdLineRaw,"~!PostInstall") And _Singleton("Infinity."&$sAlias,1)=0 Then
-  MsgBox(32,$sTitle,"Another instance is already running.")
-  _Log("_Singleton,Exit")
-  Exit
+ElseIf StringInStr($CmdLineRaw,"~!Version") Then
+  ConsoleWrite($VERSION&@CRLF)
+  Exit 0
 EndIf
 
 Global $aNotify[]=[0]
@@ -226,7 +225,11 @@ Global $iFetchAvg=0
 Global $aStats[4]; Last, Min, Max, Avg
 Global $bRC=StringInStr(@ScriptName,".rc.exe")
 Global $bDev=@Compiled ? False : True
+Global $sInstFullPath=StringFormat("%s\%s",$gsDataDir,@ScriptName)
 If $bDev Then $bRC=True
+If $bRC Then
+  $sTitle=$sAlias&".rc v"&$VERSION
+EndIf
 
 Global $sNewFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.enteredBy"
 Global $sModFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.updatedBy"
@@ -265,10 +268,8 @@ Else
 EndIf
 
 ;_DebugArrayDisplay($aFieldsDesc)
-Global $idTrayExit
-Global $idTrayQueue
-Global $idTrayTiks
-
+Global $idTrayExit, $idTrayQueue, $idTrayTiks, $idTrayReq
+Global $aDbgFetch
 ; cwmAuth Vars
 Global $g_cwmAuth_idDoneBtn
 Global $g_cwmAuth_aidInput
@@ -279,9 +280,30 @@ Global $g_cwm_sClientId_Crypt
 Global $gsConfigFile=$gsDataDir&"\config.ini"
 ; Stats
 Global $gsStatsFile=$gsDataDir&"\stats.dat"
+
+_Log($sInstFullPath)
+_Log(@Compiled)
+_Log(FileExists($sInstFullPath))
+
+If @Compiled Then
+  If FileExists($sInstFullPath) Then
+    If cwUpdate() Then Exit
+  Else
+    cwInstall()
+  EndIf
+EndIf
+
+If Not StringInStr($CmdLineRaw,"~!PostInstall") And _Singleton("Infinity."&$sAlias,1)=0 Then
+  MsgBox(32,$sTitle,"Another instance is already running.")
+  _Log("_Singleton,Exit")
+  Exit
+EndIf
+
+
 ; DPI
 _WinAPI_SetProcessDpiAwarenessContext($DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 $iDpi=_WinAPI_GetDpiForPrimaryMonitor()/96
+
 
 _Log("======================================================"&@CRLF)
 
@@ -304,8 +326,9 @@ _nResolveUpdateInfoDNS()
 Local $bExit=False
 
 $idTrayExit=TrayCreateItem("Exit")
-If $bDev Or $bRc Then $idTrayQueue=TrayCreateItem("Queue")
-If $bDev Or $bRc Then $idTrayTiks=TrayCreateItem("Tiks")
+If $bDev Or $bRc Then $idTrayReq=TrayCreateItem("aFetch")
+If $bDev Or $bRc Then $idTrayQueue=TrayCreateItem("aNotify")
+If $bDev Or $bRc Then $idTrayTiks=TrayCreateItem("aTiks")
 AdlibRegister("_TrayEvent",50)
 
 _Toast_Hide()
@@ -357,11 +380,15 @@ WEnd
 
 If StringInStr($CmdLineRaw,"~!PrePurgeOldTiks") And Not $bFirstRun Then
   _Log("Purging Old Tiks...")
+  _Toast_ShowMod(0,$sTitle,"Purging old tickets...",-5)
   If _PurgeOldTiks() Then
     FileDelete($gsStateFile)
     _saveState()
   EndIf
   _Log("Purging Old Tiks...Done")
+  _Toast_ShowMod(0,$sTitle,"Purging old tickets...Done",-5)
+  Sleep(2000)
+  _Toast_Hide()
 EndIf
 
 Global $bCurl=1;False
@@ -432,6 +459,10 @@ $bNotifyLock=True
 Global $iHB=1
 Global $bIncNotify=False
 ;AdlibRegister("Test",125)
+;$jTikNotes=_cwmCall("/service/tickets/2049912/allNotes?orderBy=_info/sortByDate desc&pageSize=999")
+;ClipPut(_JSON_Generate($jTikNotes))
+
+
 tikWatch()
 $iWatchTimer=TimerInit()
 If $bAsync Then
@@ -458,6 +489,7 @@ Func tikNotify()
     If $bNotifyLock Or $bIncNotify Then Return ; Wait for queue to finish updating
     If $aQueue[0][0]=0 Then; If there are no new events, continue loop.
         ;If Not $bAsync And TimerDiff($iWatchTimer)>=$iWatchInterval Then tikWatch()
+
         Return
     EndIf
     $iIdx=$aQueue[0][1]
@@ -479,6 +511,7 @@ Func tikNotify()
     ;_Log(StringFormat("NotifyQueue: iLast:%s iMax:%s",$iIdx,$iIdxMax))
     If $hToast_Handle<>0 Then Return
     $aRet=_Toast_ShowMod(0,$aQueue[$iIdx][0],$aQueue[$iIdx][1],Null,True,True) ; Spawn toast.
+    ;ClipPut($aQueue[$iIdx][0]&@CRLF&@CRLF&$aQueue[$iIdx][1])
     $iToast_TikId=$aQueue[$iIdx][2]
     If @error Then
         _Log(StringFormat("~!Error@Main:_Toast_ShowMod,%s,%s",@Error,@Extended))
@@ -608,7 +641,6 @@ Func tikWatch()
   Global $aNewFields
   Global $aModFields
   Global $bCommit=False
-  $fToast_bDismissAll=False
   For $i=1 To $aTiks[0][0]
     If $bExit Then _Exit()
     $bNewTik=False
@@ -965,6 +997,11 @@ Func _saveState()
     $bPurgeTik=False
   EndIf
   DirCreate($gsDataDir)
+  Local $gsStateLockFile=$gsStateFile&".lock"
+  While FileExists($gsStateLockFile)
+    Sleep(1000)
+  WEnd
+  FileClose(FileOpen($gsStateLockFile,2))
   For $i=1 To $aTiksLast[0][0]
     If $aTiksLast[$i][0]="" Or $aTiksLast[$i][1]=0 Then
       _Log(StringFormat("~!Warn@_saveState,OmitInvData:%s",$i))
@@ -976,6 +1013,7 @@ Func _saveState()
     IniWrite($gsStateFile,$aTiksLast[$i][0],"Type",$aTiksLast[$i][4])
   Next
   _Log("Saving State...Done")
+  FileDelete($gsStateLockFile)
 EndFunc   ;==>_saveState
 
 Func _InitHttp()
@@ -1066,6 +1104,7 @@ Func _curlGet($vUrl,$bCwmCall=False)
         Curl_Multi_Perform($hMulti,$bRun)
         $iQueue=0
         Do
+            $aDbgFetch=$vUrl
             $vMsg=Curl_Multi_Info_Read($hMulti,$iQueue)
             $iMsg=DllStructGetData($vMsg, "msg")
             If $iMsg<>$CURLMSG_DONE Then ContinueLoop
@@ -1100,8 +1139,10 @@ Func _curlGet($vUrl,$bCwmCall=False)
             $vUrl[$iIdx][$iCol]=BinaryToString(Curl_Data_Get($hCurl))
             Curl_Easy_Cleanup($hCurl)
             Curl_Data_Cleanup($hCurl)
+
         Until $iQueue=0
-	Until $bRun=0
+  Until $bRun=0
+  $aDbgFetch=$vUrl
 	Curl_Multi_Cleanup($hMulti)
     If UBound($vUrl,1)<2 Then
         ;_DebugArrayDisplay($vUrl)
@@ -1566,15 +1607,19 @@ Func _TrayEvent()
     Case $idTrayQueue
       If $bDev Or $bRc Then
         AdlibUnRegister("_TrayEvent")
-        _ArrayDisplay($aQueue)
+        _DebugArrayDisplay($aQueue)
         AdlibRegister("_TrayEvent",50)
       EndIf
     Case $idTrayTiks
       If $bDev Or $bRc Then
         AdlibUnRegister("_TrayEvent")
-        _ArrayDisplay($aTiks)
+        _DebugArrayDisplay($aTiks)
         AdlibRegister("_TrayEvent",50)
       EndIf
+    Case $idTrayReq
+        AdlibUnRegister("_TrayEvent")
+        _DebugArrayDisplay($aDbgFetch)
+        AdlibRegister("_TrayEvent",50)
   EndSwitch
 EndFunc   ;==>_TrayEvent
 
@@ -1897,6 +1942,47 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
   ; Determine max message width
   Local $iMax_Label_Width=$iToast_Width_max-20-$iIcon_Reduction
   If $fRaw=True Then $iMax_Label_Width=0
+  Local $iLenCap=150
+  Local $iLineCap=40
+  While StringInStr($sMessage,@CRLF&@CRLF&@CRLF)
+    $sMessage=StringReplace($sMessage,@CRLF&@CRLF&@CRLF,@CRLF&@CRLF)
+  WEnd
+  $sMessage=StringStripWS($sMessage,2)
+  Local $aMsg=StringSplit($sMessage,@CRLF,1)
+  Local $iSplit,$iLen,$iMaxLen=0,$sNewMsg=""
+  For $i=1 To $aMsg[0]
+    $iLen=StringLen($aMsg[$i])
+    If $iLen>$iMaxLen Then $iMaxLen=$iLen
+  Next
+  If $iMaxLen>=$iLenCap Then
+    Local $sTrunc="",$iTrunc=0
+    _Log($sMessage)
+    Do
+      _Log("PruneMsg.Pre="&$iMaxLen)
+      $sMessage=""
+      For $i=1 To $aMsg[0]
+        If StringLen($aMsg[$i])>=$iLenCap Then
+            $aMsg[$i]=StringMid($aMsg[$i],1,$iLenCap)&@CRLF&StringMid($aMsg[$i],$iLenCap+1)
+        EndIf
+      Next
+      $sMessage=_ArrayToString($aMsg,@CRLF,1)
+      $aMsg=StringSplit($sMessage,@CRLF,1)
+      $iMaxLen=0
+      For $i=1 To $aMsg[0]
+        $iLen=StringLen($aMsg[$i])
+        If $iLen>$iMaxLen Then $iMaxLen=$iLen
+      Next
+      _Log("PruneMsg.Post="&$iMaxLen)
+    Until $iLenCap>=$iMaxLen
+    $aMsg=StringSplit($sMessage,@CRLF,1)
+    If $aMsg[0]>$iLineCap Then
+      $sMessage=_ArrayToString($aMsg,@CRLF,1,$iLineCap)
+      $sMessage&=@CRLF&"..."
+    Else
+      $sMessage=_ArrayToString($aMsg,@CRLF,1)
+    EndIf
+  EndIf
+
   ; Get message label size
   Local $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iMax_Label_Width,$hToast_Handle)
   If @error Then
@@ -1906,6 +1992,14 @@ Func _Toast_ShowMod($vIcon,$sTitle,$sMessage,$iDelay=0,$fWait=True,$bisTicket=Fa
           $aLabel_Pos=_StringSize($sMessage,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iScale,$hToast_Handle)
           $iScale+=2
         Until @Error<>3
+        If $aLabel_Pos[2]+20+$iIcon_Reduction>@DesktopWidth-20 Then
+          Local $sTrunc="",$iTrunc=0
+          Do
+            $sTrunc=StringTrimRight($sMessage,$iTrunc)
+            $aLabel_Pos=_StringSize($sTrunc,$iToast_Font_Size,Default,Default,$sToast_Font_Name,$iScale,$hToast_Handle)
+            $iTrunc+=2
+          Until $aLabel_Pos[2]+20+$iIcon_Reduction>@DesktopWidth-20
+        EndIf
         _Log("iScaleFix="&$iScale)
     Else
         Return SetError((@Error*10)+3,(@Extended*10)+0,-1)
@@ -2143,20 +2237,60 @@ Func cwInstall()
     If MsgBox(32+4,$sTitle,"Would you like to add to the desktop shortcut?")==6 Then $bDesktop=1
     If MsgBox(32+4,$sTitle,"Would you like to add to the Start Menu?")==6 Then $bStartMenu=1
     If $bStartup Or $bDesktop Or $bStartMenu Then
-      FileCopy(@AutoItExe,$gsDataDir&"\cwNotify.exe",1)
+      FileCopy(@AutoItExe,$sInstFullPath,1)
     EndIf
     If $bStartup Then
-      RegWrite("HKCU\Software\Microsoft\Windows\CurrentVersion\Run","cwNotify","REG_SZ",$gsDataDir&"\cwNotify.exe")
+      RegWrite("HKCU\Software\Microsoft\Windows\CurrentVersion\Run","cwNotify","REG_SZ",$sInstFullPath)
     EndIf
     If $bDesktop Then
-      FileCreateShortcut($gsDataDir&"\cwNotify.exe",@DesktopDir&"\cwNotify.lnk",$gsDataDir)
+      FileCreateShortcut($sInstFullPath,@DesktopDir&"\cwNotify.lnk",$gsDataDir)
     EndIf
     If $bStartMenu Then
-      FileCreateShortcut($gsDataDir&"\cwNotify.exe",@ProgramsDir&"\cwNotify.lnk",$gsDataDir)
+      FileCreateShortcut($sInstFullPath,@ProgramsDir&"\cwNotify.lnk",$gsDataDir)
     EndIf
     If MsgBox(32+4,$sTitle,"Would you like to run now?")==6 Then
-      Run($gsDataDir&"\cwNotify.exe ~!PostInstall",$gsDataDir,@SW_SHOW)
+      Run($sInstFullPath&" ~!PostInstall",$gsDataDir,@SW_SHOW)
       Exit 0
     EndIf
+    Exit 0
   EndIf
+EndFunc
+
+; Update existing version.
+; -Check if this version is newer.
+; -Close existing version if it's running.
+; -Prompt to start after update.
+Func cwUpdate()
+  $sOldVer=FileGetVersion($sInstFullPath,"FileVersion")
+  $sCurVer=FileGetVersion(@AutoItExe,"FileVersion")
+  If _VersionCompare($sOldVer,$sCurVer)<>-1 Then Return 0
+  Local $bUpdate=0,$bRun=0
+  If MsgBox(32+4,$sTitle,"This version is newer than the one that is current installed, would you like to update it?")==6 Then $bUpdate=1
+  If Not $bUpdate Then
+    If MsgBox(32+4,$sTitle,"Would you like to run the new version now?")==6 Then Return 0
+    Return 1
+  EndIf
+  If $bUpdate Then
+    Local $iPid=-1,$aProc=ProcessList(@ScriptName)
+    ;_DebugArrayDisplay($aProc)
+    For $i=1 To $aProc[0][0]
+      _Log($aProc[$i][1]&","&@AutoItPID)
+      If $aProc[$i][1]<>@AutoItPID Then
+        $iPid=$aProc[$i][1]
+      EndIf
+    Next
+    If $iPid<>-1 And ProcessExists($iPid) Then
+      _Log("Killing pid: "&$iPid)
+      ;RunWait("taskkill /f /pid "&$iPid,)
+      ProcessClose($iPid)
+      ProcessWaitClose($iPid)
+    EndIf
+    _Log(FileCopy(@AutoItExe,$sInstFullPath,1))
+  EndIf
+  Local $iRet=MsgBox(32+4,$sTitle,"Would you like to run the new version after the update?")
+  If $iRet=6 Then $bRun=1
+  If $bRun Then
+    Run($sInstFullPath&" ~!PostInstall",$gsDataDir,@SW_SHOW)
+  EndIf
+  Return 1
 EndFunc

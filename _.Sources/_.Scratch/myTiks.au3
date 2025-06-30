@@ -7,10 +7,10 @@
 
 Global $g_cwm_sEpoch="1970/01/01 00:00:00"
 Global $aTiks[][4]=[[0,'','','']]
-Global $gsStateFile=@LocalAppDataDir&"\InfinitySys\cwNotifier\state.ini"
+Global $gsStateFile=@LocalAppDataDir&"\InfinitySys\cwNotifier\state.rc.ini"
 ;Global $sModFields="_info.dateEntered,_info.lastUpdated,id,status.name,owner.name,summary,company.name,contact.name,subType.name,item.name,priority.name,severity.name,type.name,_info.enteredBy,_info.updatedBy"
-Global $sModFields="id,type.name,priority.name,status.name,item.name,subType.name,company.name,summary,_info.lastUpdated,owner.name,slaStatus"
-;Resolve by Thu 08/15 4:34 PM UTC-04
+Global $sModFields="id,type.name,priority.name,status.name,item.name,subType.name,company.name,summary,_info.lastUpdated,_info.dateEntered,owner.name,slaStatus"
+
 Global $aFieldsDesc[][2]=[ _
     [0,0], _
     ["id","id"], _
@@ -31,6 +31,7 @@ Global $aFieldsDesc[][2]=[ _
     ["_info.lastUpdated","Updated"], _
     ["slaStatus","SLA Status"] _
 ]
+
 $aFieldsDesc[0][0]=UBound($aFieldsDesc,1)-1
 For $i=1 To $aFieldsDesc[0][0]
   $iLen=StringLen($aFieldsDesc[$i][1])
@@ -42,7 +43,14 @@ Local $iFields=@Extended+2
 Global $aUserTik[1][$iFields]
 _Log(_loadState()&','&@Error&','&@Extended)
 
-;ClipPut(_JSON_Generate($aTiks[1][2]))
+;~ _DebugArrayDisplay($aTiks)
+For $i=1 To $aTiks[0][0]
+  If $aTiks[$i][0]="2049912" Then
+    ClipPut(_JSON_Generate($aTiks[$i][3]))
+    exit
+  EndIf
+Next
+Exit
 For $i=1 To $aTiks[0][0]
   Dim $aFields
   If StringInStr(_JSON_Get($aTiks[$i][2],"closedFlag"),"true") Then ContinueLoop
@@ -55,8 +63,21 @@ For $i=1 To $aTiks[0][0]
     $aUserTik[$iMax][$y-1]=$aFields[$y][1]
   Next
 Next
-;_ArrayDisplay($aTiks)
-Global $aSortData[][] = [[10, 1],[1, 0], [2, 0], [3, 0]]
+_ArrayDisplay($aTiks)
+$aUserTik[0][12]="Age"
+For $i=1 To UBound($aUserTik,1)-1
+  $aUserTik[$i][8]=_cwmConvDate2Read($aUserTik[$i][8])
+  ;$iCreate=_cwmConvDate2Sec($aUserTik[$i][9])
+  Local $dtCreate=$aUserTik[$i][9]
+  $aUserTik[$i][9]=_cwmConvDate2Read($dtCreate)
+  $iNow=_cwmConvDate2Sec(_NowCalc())
+  $iCreate=_cwmConvDate2Sec($dtCreate)
+  $iDiff=$iNow-$iCreate
+  $iAge=Round($iDiff/(24*60*60),1)
+  $aUserTik[$i][12]=$iAge
+  ;ConsoleWrite($iCreate&','&$iNow&','&$iDiff&','&$iAge&@CRLF)
+Next
+Global $aSortData[][] = [[2, 0],[3, 0],[12,1],[1, 0],[10, 1]]
 _ArrayMultiColSort($aUserTik, $aSortData,1)
 _ArrayDisplay($aUserTik)
 ; SortBy: SLA,Priority,Status,Type
@@ -119,10 +140,10 @@ Func _tikGetFields(ByRef $tData, ByRef $aFields, ByRef $sFields)
         EndSwitch
       Case "owner.name"
         If $vData='' Then $vData="(Unassigned)"
-      Case "_info.dateEntered"
-        $vData=_cwmConvDate2Read($vData)
-      Case "_info.lastUpdated"
-        $vData=_cwmConvDate2Read($vData)
+      ;Case "_info.dateEntered"
+      ;  $vData=_cwmConvDate2Read($vData)
+      ;Case "_info.lastUpdated"
+      ;  $vData=_cwmConvDate2Read($vData)
     EndSwitch
     If $vData='' Then $vData='-'
     $aFields[$j][1]=$vData
